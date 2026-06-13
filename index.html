@@ -1644,7 +1644,6 @@ const app = {
 
         async login() {
             const name = document.getElementById('loginName').value.trim();
-            const adminCodeInput = document.getElementById('adminCode') ? document.getElementById('adminCode').value.trim() : '';
             let code = document.getElementById('loginCode').value.trim().toUpperCase();
 
             if (!name) {
@@ -1713,6 +1712,7 @@ const app = {
             if (!this.predictions[code][name]) this.predictions[code][name] = {};
 
             const pollUsers = Object.keys(this.users[code] || {});
+            const adminCodeInput = document.getElementById('adminCode') ? document.getElementById('adminCode').value.trim() : '';
             this.isAdmin = (pollUsers.length <= 1) || (adminCodeInput === 'Fifaadmin2026*');
 
             await this.saveToFirebase();
@@ -2432,7 +2432,7 @@ const app = {
             this.renderStandings();
             this.renderAdmin();
         }
-    };,
+
 
         // ============================================
         // SECCIÓN DE PRONÓSTICOS DE TODOS LOS JUGADORES
@@ -2576,7 +2576,7 @@ const app = {
                 row.classList.toggle('expanded');
                 row.classList.toggle('collapsed');
             }
-        }
+        },    };
 
     document.addEventListener('DOMContentLoaded', () => {
         app.init();
