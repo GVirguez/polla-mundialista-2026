@@ -1794,6 +1794,19 @@ const MATCHES_DATA = [
             }
         },
 
+        // Función helper: siempre muestra hora Colombia (UTC-5)
+        function formatColombiaDate(date) {
+            const options = { 
+                weekday: 'short', 
+                day: 'numeric', 
+                month: 'short', 
+                hour: '2-digit', 
+                minute: '2-digit',
+                timeZone: 'America/Bogota'
+            };
+            return date.toLocaleDateString('es-CO', options);
+        }
+
         renderMatches() {
             const container = document.getElementById('matchesList');
             const now = new Date();
@@ -1804,7 +1817,11 @@ const MATCHES_DATA = [
                 return {
                     ...m,
                     dateObj: d,
-                    isLocked: d <= new Date(now.getTime() + lockMinutes * 60000),
+                    isLocked: (() => {
+                    const colombiaNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+                    const colombiaMatch = new Date(d.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+                    return colombiaMatch <= new Date(colombiaNow.getTime() + lockMinutes * 60000);
+                })(),
                     isFinished: !!app.results[m.id],
                     userPrediction: app.predictions[app.currentPoll] && app.predictions[app.currentPoll][app.currentUser] ? 
                         app.predictions[app.currentPoll][app.currentUser][m.id] : null
@@ -1830,9 +1847,7 @@ const MATCHES_DATA = [
         },
 
         renderMatchCard(m) {
-            const dateStr = m.dateObj.toLocaleDateString('es-ES', { 
-                weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' 
-            });
+            const dateStr = formatColombiaDate(m.dateObj);
 
             let statusClass, statusText;
             if (m.isFinished) {
@@ -2138,7 +2153,10 @@ const MATCHES_DATA = [
             const now = new Date();
             const upcoming = MATCHES_DATA
                 .map(m => ({ ...m, dateObj: new Date(m.date) }))
-                .filter(m => m.dateObj > now && !this.results[m.id])
+                .filter(m => {
+                    const colombiaTime = new Date(m.date).toLocaleString('en-US', { timeZone: 'America/Bogota' });
+                    return new Date(colombiaTime) > now && !this.results[m.id];
+                })
                 .sort((a, b) => a.dateObj - b.dateObj)[0];
 
             const banner = document.getElementById('nextMatchBanner');
