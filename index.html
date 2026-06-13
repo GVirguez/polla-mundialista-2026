@@ -1267,7 +1267,29 @@ const MATCHES_DATA = [
     { id: 104, group: 'F', date: '2026-07-19T15:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'MetLife Stadium, East Rutherford', label: 'G101 vs G102' }
 ];
 
-    const app = {
+    // ============================================
+// FUNCIONES HELPER GLOBALES - Hora Colombia
+// ============================================
+function formatColombiaDate(date) {
+    const options = { 
+        weekday: 'short', 
+        day: 'numeric', 
+        month: 'short', 
+        hour: '2-digit', 
+        minute: '2-digit',
+        timeZone: 'America/Bogota'
+    };
+    return date.toLocaleDateString('es-CO', options);
+}
+
+function getColombiaDate() {
+    return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+}
+
+// ============================================
+// OBJETO PRINCIPAL DE LA APLICACIÓN
+// ============================================
+const app = {
         currentUser: null,
         currentPoll: null,
         matches: [],
@@ -1832,25 +1854,6 @@ const MATCHES_DATA = [
 
             container.innerHTML = matches.map(m => this.renderMatchCard(m)).join('');
         },
-
-        // ============================================
-        // HELPER: Formatear fecha siempre en hora Colombia
-        // ============================================
-        function formatColombiaDate(date) {
-            const options = { 
-                weekday: 'short', 
-                day: 'numeric', 
-                month: 'short', 
-                hour: '2-digit', 
-                minute: '2-digit',
-                timeZone: 'America/Bogota'
-            };
-            return date.toLocaleDateString('es-CO', options);
-        }
-
-        function getColombiaDate() {
-            return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }));
-        }
 
         renderMatchCard(m) {
             const dateStr = formatColombiaDate(m.dateObj);
