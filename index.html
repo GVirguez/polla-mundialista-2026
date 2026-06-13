@@ -1424,6 +1424,7 @@ const app = {
         results: {},
         users: {},
         filter: 'all',
+        predictionsFilter: 'all',
         syncInterval: null,
         isAdmin: false,
         db: null,
@@ -2431,13 +2432,9 @@ const app = {
             this.renderMatches();
             this.renderStandings();
             this.renderAdmin();
-        }
+        },
 
 
-        // ============================================
-        // SECCIÓN DE PRONÓSTICOS DE TODOS LOS JUGADORES
-        // ============================================
-        predictionsFilter: 'all',
 
         filterPredictions(filter) {
             this.predictionsFilter = filter;
@@ -2576,8 +2573,8 @@ const app = {
                 row.classList.toggle('expanded');
                 row.classList.toggle('collapsed');
             }
-        },    };
-
+        }
+    };
     document.addEventListener('DOMContentLoaded', () => {
         app.init();
     });
