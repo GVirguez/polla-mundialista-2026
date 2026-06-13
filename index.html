@@ -1794,19 +1794,6 @@ const MATCHES_DATA = [
             }
         },
 
-        // Función helper: siempre muestra hora Colombia (UTC-5)
-        function formatColombiaDate(date) {
-            const options = { 
-                weekday: 'short', 
-                day: 'numeric', 
-                month: 'short', 
-                hour: '2-digit', 
-                minute: '2-digit',
-                timeZone: 'America/Bogota'
-            };
-            return date.toLocaleDateString('es-CO', options);
-        }
-
         renderMatches() {
             const container = document.getElementById('matchesList');
             const now = new Date();
@@ -1818,7 +1805,7 @@ const MATCHES_DATA = [
                     ...m,
                     dateObj: d,
                     isLocked: (() => {
-                    const colombiaNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+                    const colombiaNow = getColombiaDate();
                     const colombiaMatch = new Date(d.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
                     return colombiaMatch <= new Date(colombiaNow.getTime() + lockMinutes * 60000);
                 })(),
@@ -1845,6 +1832,25 @@ const MATCHES_DATA = [
 
             container.innerHTML = matches.map(m => this.renderMatchCard(m)).join('');
         },
+
+        // ============================================
+        // HELPER: Formatear fecha siempre en hora Colombia
+        // ============================================
+        function formatColombiaDate(date) {
+            const options = { 
+                weekday: 'short', 
+                day: 'numeric', 
+                month: 'short', 
+                hour: '2-digit', 
+                minute: '2-digit',
+                timeZone: 'America/Bogota'
+            };
+            return date.toLocaleDateString('es-CO', options);
+        }
+
+        function getColombiaDate() {
+            return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+        }
 
         renderMatchCard(m) {
             const dateStr = formatColombiaDate(m.dateObj);
@@ -2154,8 +2160,9 @@ const MATCHES_DATA = [
             const upcoming = MATCHES_DATA
                 .map(m => ({ ...m, dateObj: new Date(m.date) }))
                 .filter(m => {
-                    const colombiaTime = new Date(m.date).toLocaleString('en-US', { timeZone: 'America/Bogota' });
-                    return new Date(colombiaTime) > now && !this.results[m.id];
+                    const colombiaNow = getColombiaDate();
+                    const matchTime = new Date(m.date);
+                    return matchTime > colombiaNow && !this.results[m.id];
                 })
                 .sort((a, b) => a.dateObj - b.dateObj)[0];
 
