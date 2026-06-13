@@ -809,7 +809,111 @@
             .login-card { padding: 30px 20px; }
             .countdown-banner { font-size: 0.85rem; padding: 10px 12px; }
         }
-    </style>
+    
+        /* ESTILOS PRONÓSTICOS */
+        .predictions-table {
+            background: var(--card);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            margin-bottom: 16px;
+        }
+        .predictions-match-header {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+            padding: 14px 16px;
+            background: #f8faf8;
+            border-bottom: 2px solid var(--border);
+            cursor: pointer;
+            transition: all 0.3s;
+            align-items: center;
+        }
+        .predictions-match-header:hover { background: #f0f4f0; }
+        .predictions-match-header .match-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--primary-dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .predictions-players-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 10px;
+            padding: 16px;
+            background: white;
+        }
+        .prediction-player-card {
+            background: #f8f9fa;
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            border: 1px solid var(--border);
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .prediction-player-card:hover {
+            background: #f0f4f0;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+        .prediction-player-card .player-name {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .prediction-player-card .player-score {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 1.2rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+        .prediction-player-card .score-box {
+            background: white;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 4px 12px;
+            min-width: 36px;
+        }
+        .prediction-player-card .score-sep { color: var(--text-secondary); }
+        .prediction-player-card .points-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 800;
+        }
+        .points-exact { background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%); color: var(--primary-dark); }
+        .points-winner-goals { background: #e3f2fd; color: #1565c0; }
+        .points-winner { background: #e8f5e9; color: #2e7d32; }
+        .points-goals { background: #fff3e0; color: #ef6c00; }
+        .points-zero { background: #ffebee; color: #c62828; }
+        .points-pending { background: #f5f5f5; color: #999; }
+        .predictions-match-row { border-bottom: 1px solid var(--border); }
+        .predictions-match-row:last-child { border-bottom: none; }
+        .predictions-match-row.collapsed .predictions-players-grid { display: none; }
+        .predictions-match-row.collapsed .match-toggle::after { content: "▼"; margin-left: 8px; font-size: 0.7rem; }
+        .predictions-match-row.expanded .match-toggle::after { content: "▲"; margin-left: 8px; font-size: 0.7rem; }
+        .match-toggle { color: var(--text-secondary); }
+        .result-display { font-size: 0.85rem; color: var(--text-secondary); }
+        .result-display .res-score { font-weight: 800; color: var(--primary); background: #e8f5e9; padding: 2px 8px; border-radius: 6px; margin-left: 6px; }
+        @media (max-width: 600px) {
+            .predictions-players-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+            .predictions-match-header { grid-template-columns: 1fr; }
+        }
+
+</style>
+<base target="_blank">
 <base target="_blank">
 <base target="_blank">
 </head>
@@ -829,6 +933,11 @@
             <div class="form-group">
                 <label>🔑 Código de la polla (opcional)</label>
                 <input type="text" id="loginCode" class="form-input" placeholder="Dejar vacío para crear una nueva" maxlength="10">
+            </div>
+
+            <div class="form-group">
+                <label>🛡️ Código de admin (solo si eres admin)</label>
+                <input type="password" id="adminCode" class="form-input" placeholder="Opcional - solo para administradores" maxlength="20">
             </div>
 
             <button class="btn btn-primary" onclick="app.login()">
@@ -880,6 +989,9 @@
                 </button>
                 <button class="nav-tab" onclick="app.switchTab('rules')" data-tab="rules">
                     📋 Reglas
+                </button>
+                <button class="nav-tab" onclick="app.switchTab('predictions')" data-tab="predictions">
+                    👥 Pronósticos
                 </button>
                 <button class="nav-tab" onclick="app.switchTab('admin')" data-tab="admin" id="adminTab" style="display:none;">
                     ⚙️ Admin
@@ -996,6 +1108,20 @@
             </section>
 
             <!-- ADMIN SECTION -->
+            <!-- PREDICTIONS SECTION -->
+            <section id="predictionsSection" class="section">
+                <h2 class="section-title">👥 Pronósticos de Todos los Jugadores</h2>
+
+                <div class="filters">
+                    <button class="filter-btn active" onclick="app.filterPredictions('all')">Todos los Partidos</button>
+                    <button class="filter-btn" onclick="app.filterPredictions('finished')">Finalizados</button>
+                    <button class="filter-btn" onclick="app.filterPredictions('closed')">Cerrados</button>
+                    <button class="filter-btn" onclick="app.filterPredictions('with-results')">Con Resultado</button>
+                </div>
+
+                <div id="predictionsList"></div>
+            </section>
+
             <section id="adminSection" class="section">
                 <h2 class="section-title">⚙️ Panel de Administración</h2>
 
@@ -1094,178 +1220,178 @@ const MATCHES_DATA = [
     // ============================================
     // GRUPO A - Hora Colombia (GMT-5)
     // ============================================
-    { id: 1, group: 'A', date: '2026-06-11T15:00:00-05:00', team1: 'Mexico', team2: 'South Africa', venue: 'Estadio Azteca, CDMX' },
-    { id: 2, group: 'A', date: '2026-06-11T23:00:00-05:00', team1: 'South Korea', team2: 'Czechia', venue: 'Estadio Akron, Guadalajara' },
-    { id: 3, group: 'A', date: '2026-06-18T11:00:00-05:00', team1: 'Czechia', team2: 'South Africa', venue: 'Mercedes-Benz Stadium, Atlanta' },
-    { id: 4, group: 'A', date: '2026-06-18T22:00:00-05:00', team1: 'Mexico', team2: 'South Korea', venue: 'Estadio Akron, Guadalajara' },
-    { id: 5, group: 'A', date: '2026-06-24T20:00:00-05:00', team1: 'Czechia', team2: 'Mexico', venue: 'Estadio Azteca, CDMX' },
-    { id: 6, group: 'A', date: '2026-06-24T20:00:00-05:00', team1: 'South Africa', team2: 'South Korea', venue: 'Estadio BBVA, Monterrey' },
+    { id: 1, apiId: 1, group: 'A', date: '2026-06-11T15:00:00-05:00', team1: 'Mexico', team2: 'South Africa', venue: 'Estadio Azteca, CDMX' },
+    { id: 2, apiId: 2, group: 'A', date: '2026-06-11T23:00:00-05:00', team1: 'South Korea', team2: 'Czechia', venue: 'Estadio Akron, Guadalajara' },
+    { id: 3, apiId: 3, group: 'A', date: '2026-06-18T11:00:00-05:00', team1: 'Czechia', team2: 'South Africa', venue: 'Mercedes-Benz Stadium, Atlanta' },
+    { id: 4, apiId: 4, group: 'A', date: '2026-06-18T22:00:00-05:00', team1: 'Mexico', team2: 'South Korea', venue: 'Estadio Akron, Guadalajara' },
+    { id: 5, apiId: 5, group: 'A', date: '2026-06-24T20:00:00-05:00', team1: 'Czechia', team2: 'Mexico', venue: 'Estadio Azteca, CDMX' },
+    { id: 6, apiId: 6, group: 'A', date: '2026-06-24T20:00:00-05:00', team1: 'South Africa', team2: 'South Korea', venue: 'Estadio BBVA, Monterrey' },
 
     // ============================================
     // GRUPO B - Hora Colombia (GMT-5)
     // ============================================
-    { id: 7, group: 'B', date: '2026-06-12T14:00:00-05:00', team1: 'Canada', team2: 'Bosnia and Herzegovina', venue: 'BMO Field, Toronto' },
-    { id: 8, group: 'B', date: '2026-06-13T14:00:00-05:00', team1: 'Qatar', team2: 'Switzerland', venue: "Levi's Stadium, Santa Clara" },
-    { id: 9, group: 'B', date: '2026-06-18T14:00:00-05:00', team1: 'Switzerland', team2: 'Bosnia and Herzegovina', venue: 'SoFi Stadium, Inglewood' },
-    { id: 10, group: 'B', date: '2026-06-19T17:00:00-05:00', team1: 'Canada', team2: 'Qatar', venue: 'BC Place, Vancouver' },
-    { id: 11, group: 'B', date: '2026-06-24T14:00:00-05:00', team1: 'Switzerland', team2: 'Canada', venue: 'BC Place, Vancouver' },
-    { id: 12, group: 'B', date: '2026-06-24T14:00:00-05:00', team1: 'Bosnia and Herzegovina', team2: 'Qatar', venue: 'Lumen Field, Seattle' },
+    { id: 7, apiId: 7, group: 'B', date: '2026-06-12T14:00:00-05:00', team1: 'Canada', team2: 'Bosnia and Herzegovina', venue: 'BMO Field, Toronto' },
+    { id: 8, apiId: 8, group: 'B', date: '2026-06-13T14:00:00-05:00', team1: 'Qatar', team2: 'Switzerland', venue: "Levi's Stadium, Santa Clara" },
+    { id: 9, apiId: 9, group: 'B', date: '2026-06-18T14:00:00-05:00', team1: 'Switzerland', team2: 'Bosnia and Herzegovina', venue: 'SoFi Stadium, Inglewood' },
+    { id: 10, apiId: 10, group: 'B', date: '2026-06-19T17:00:00-05:00', team1: 'Canada', team2: 'Qatar', venue: 'BC Place, Vancouver' },
+    { id: 11, apiId: 11, group: 'B', date: '2026-06-24T14:00:00-05:00', team1: 'Switzerland', team2: 'Canada', venue: 'BC Place, Vancouver' },
+    { id: 12, apiId: 12, group: 'B', date: '2026-06-24T14:00:00-05:00', team1: 'Bosnia and Herzegovina', team2: 'Qatar', venue: 'Lumen Field, Seattle' },
 
     // ============================================
     // GRUPO C - Hora Colombia (GMT-5)
     // ============================================
-    { id: 13, group: 'C', date: '2026-06-13T17:00:00-05:00', team1: 'Brazil', team2: 'Morocco', venue: 'MetLife Stadium, East Rutherford' },
-    { id: 14, group: 'C', date: '2026-06-13T20:00:00-05:00', team1: 'Haiti', team2: 'Scotland', venue: 'Gillette Stadium, Foxborough' },
-    { id: 15, group: 'C', date: '2026-06-20T17:00:00-05:00', team1: 'Scotland', team2: 'Morocco', venue: 'Gillette Stadium, Foxborough' },
-    { id: 16, group: 'C', date: '2026-06-20T20:00:00-05:00', team1: 'Brazil', team2: 'Haiti', venue: 'Lincoln Financial Field, Philadelphia' },
-    { id: 17, group: 'C', date: '2026-06-25T17:00:00-05:00', team1: 'Scotland', team2: 'Brazil', venue: 'Hard Rock Stadium, Miami' },
-    { id: 18, group: 'C', date: '2026-06-25T17:00:00-05:00', team1: 'Morocco', team2: 'Haiti', venue: 'Mercedes-Benz Stadium, Atlanta' },
+    { id: 13, apiId: 13, group: 'C', date: '2026-06-13T17:00:00-05:00', team1: 'Brazil', team2: 'Morocco', venue: 'MetLife Stadium, East Rutherford' },
+    { id: 14, apiId: 14, group: 'C', date: '2026-06-13T20:00:00-05:00', team1: 'Haiti', team2: 'Scotland', venue: 'Gillette Stadium, Foxborough' },
+    { id: 15, apiId: 15, group: 'C', date: '2026-06-20T17:00:00-05:00', team1: 'Scotland', team2: 'Morocco', venue: 'Gillette Stadium, Foxborough' },
+    { id: 16, apiId: 16, group: 'C', date: '2026-06-20T20:00:00-05:00', team1: 'Brazil', team2: 'Haiti', venue: 'Lincoln Financial Field, Philadelphia' },
+    { id: 17, apiId: 17, group: 'C', date: '2026-06-25T17:00:00-05:00', team1: 'Scotland', team2: 'Brazil', venue: 'Hard Rock Stadium, Miami' },
+    { id: 18, apiId: 18, group: 'C', date: '2026-06-25T17:00:00-05:00', team1: 'Morocco', team2: 'Haiti', venue: 'Mercedes-Benz Stadium, Atlanta' },
 
     // ============================================
     // GRUPO D - Hora Colombia (GMT-5)
     // ============================================
-    { id: 19, group: 'D', date: '2026-06-12T20:00:00-05:00', team1: 'United States', team2: 'Paraguay', venue: 'SoFi Stadium, Inglewood' },
-    { id: 20, group: 'D', date: '2026-06-13T23:00:00-05:00', team1: 'Australia', team2: 'Türkiye', venue: 'BC Place, Vancouver' },
-    { id: 21, group: 'D', date: '2026-06-19T14:00:00-05:00', team1: 'United States', team2: 'Australia', venue: 'Lumen Field, Seattle' },
-    { id: 22, group: 'D', date: '2026-06-19T23:00:00-05:00', team1: 'Türkiye', team2: 'Paraguay', venue: "Levi's Stadium, Santa Clara" },
-    { id: 23, group: 'D', date: '2026-06-26T21:00:00-05:00', team1: 'Türkiye', team2: 'United States', venue: 'SoFi Stadium, Inglewood' },
-    { id: 24, group: 'D', date: '2026-06-26T21:00:00-05:00', team1: 'Paraguay', team2: 'Australia', venue: "Levi's Stadium, Santa Clara" },
+    { id: 19, apiId: 19, group: 'D', date: '2026-06-12T20:00:00-05:00', team1: 'United States', team2: 'Paraguay', venue: 'SoFi Stadium, Inglewood' },
+    { id: 20, apiId: 20, group: 'D', date: '2026-06-13T23:00:00-05:00', team1: 'Australia', team2: 'Türkiye', venue: 'BC Place, Vancouver' },
+    { id: 21, apiId: 21, group: 'D', date: '2026-06-19T14:00:00-05:00', team1: 'United States', team2: 'Australia', venue: 'Lumen Field, Seattle' },
+    { id: 22, apiId: 22, group: 'D', date: '2026-06-19T23:00:00-05:00', team1: 'Türkiye', team2: 'Paraguay', venue: "Levi's Stadium, Santa Clara" },
+    { id: 23, apiId: 23, group: 'D', date: '2026-06-26T21:00:00-05:00', team1: 'Türkiye', team2: 'United States', venue: 'SoFi Stadium, Inglewood' },
+    { id: 24, apiId: 24, group: 'D', date: '2026-06-26T21:00:00-05:00', team1: 'Paraguay', team2: 'Australia', venue: "Levi's Stadium, Santa Clara" },
 
     // ============================================
     // GRUPO E - Hora Colombia (GMT-5)
     // ============================================
-    { id: 25, group: 'E', date: '2026-06-14T12:00:00-05:00', team1: 'Germany', team2: 'Curaçao', venue: 'NRG Stadium, Houston' },
-    { id: 26, group: 'E', date: '2026-06-14T18:00:00-05:00', team1: 'Ivory Coast', team2: 'Ecuador', venue: 'Lincoln Financial Field, Philadelphia' },
-    { id: 27, group: 'E', date: '2026-06-20T15:00:00-05:00', team1: 'Germany', team2: 'Ivory Coast', venue: 'BMO Field, Toronto' },
-    { id: 28, group: 'E', date: '2026-06-21T19:00:00-05:00', team1: 'Ecuador', team2: 'Curaçao', venue: 'Arrowhead Stadium, Kansas City' },
-    { id: 29, group: 'E', date: '2026-06-25T15:00:00-05:00', team1: 'Curaçao', team2: 'Ivory Coast', venue: 'Lincoln Financial Field, Philadelphia' },
-    { id: 30, group: 'E', date: '2026-06-25T15:00:00-05:00', team1: 'Ecuador', team2: 'Germany', venue: 'MetLife Stadium, East Rutherford' },
+    { id: 25, apiId: 25, group: 'E', date: '2026-06-14T12:00:00-05:00', team1: 'Germany', team2: 'Curaçao', venue: 'NRG Stadium, Houston' },
+    { id: 26, apiId: 26, group: 'E', date: '2026-06-14T18:00:00-05:00', team1: 'Ivory Coast', team2: 'Ecuador', venue: 'Lincoln Financial Field, Philadelphia' },
+    { id: 27, apiId: 27, group: 'E', date: '2026-06-20T15:00:00-05:00', team1: 'Germany', team2: 'Ivory Coast', venue: 'BMO Field, Toronto' },
+    { id: 28, apiId: 28, group: 'E', date: '2026-06-21T19:00:00-05:00', team1: 'Ecuador', team2: 'Curaçao', venue: 'Arrowhead Stadium, Kansas City' },
+    { id: 29, apiId: 29, group: 'E', date: '2026-06-25T15:00:00-05:00', team1: 'Curaçao', team2: 'Ivory Coast', venue: 'Lincoln Financial Field, Philadelphia' },
+    { id: 30, apiId: 30, group: 'E', date: '2026-06-25T15:00:00-05:00', team1: 'Ecuador', team2: 'Germany', venue: 'MetLife Stadium, East Rutherford' },
 
     // ============================================
     // GRUPO F - Hora Colombia (GMT-5)
     // ============================================
-    { id: 31, group: 'F', date: '2026-06-14T15:00:00-05:00', team1: 'Netherlands', team2: 'Japan', venue: 'AT&T Stadium, Arlington' },
-    { id: 32, group: 'F', date: '2026-06-14T21:00:00-05:00', team1: 'Sweden', team2: 'Tunisia', venue: 'Estadio BBVA, Monterrey' },
-    { id: 33, group: 'F', date: '2026-06-20T12:00:00-05:00', team1: 'Netherlands', team2: 'Sweden', venue: 'NRG Stadium, Houston' },
-    { id: 34, group: 'F', date: '2026-06-20T23:00:00-05:00', team1: 'Tunisia', team2: 'Japan', venue: 'Estadio BBVA, Monterrey' },
-    { id: 35, group: 'F', date: '2026-06-26T18:00:00-05:00', team1: 'Japan', team2: 'Sweden', venue: 'AT&T Stadium, Arlington' },
-    { id: 36, group: 'F', date: '2026-06-26T18:00:00-05:00', team1: 'Tunisia', team2: 'Netherlands', venue: 'Arrowhead Stadium, Kansas City' },
+    { id: 31, apiId: 31, group: 'F', date: '2026-06-14T15:00:00-05:00', team1: 'Netherlands', team2: 'Japan', venue: 'AT&T Stadium, Arlington' },
+    { id: 32, apiId: 32, group: 'F', date: '2026-06-14T21:00:00-05:00', team1: 'Sweden', team2: 'Tunisia', venue: 'Estadio BBVA, Monterrey' },
+    { id: 33, apiId: 33, group: 'F', date: '2026-06-20T12:00:00-05:00', team1: 'Netherlands', team2: 'Sweden', venue: 'NRG Stadium, Houston' },
+    { id: 34, apiId: 34, group: 'F', date: '2026-06-20T23:00:00-05:00', team1: 'Tunisia', team2: 'Japan', venue: 'Estadio BBVA, Monterrey' },
+    { id: 35, apiId: 35, group: 'F', date: '2026-06-26T18:00:00-05:00', team1: 'Japan', team2: 'Sweden', venue: 'AT&T Stadium, Arlington' },
+    { id: 36, apiId: 36, group: 'F', date: '2026-06-26T18:00:00-05:00', team1: 'Tunisia', team2: 'Netherlands', venue: 'Arrowhead Stadium, Kansas City' },
 
     // ============================================
     // GRUPO G - Hora Colombia (GMT-5)
     // ============================================
-    { id: 37, group: 'G', date: '2026-06-15T17:00:00-05:00', team1: 'Belgium', team2: 'Egypt', venue: 'Lumen Field, Seattle' },
-    { id: 38, group: 'G', date: '2026-06-15T23:00:00-05:00', team1: 'Iran', team2: 'New Zealand', venue: 'SoFi Stadium, Inglewood' },
-    { id: 39, group: 'G', date: '2026-06-21T14:00:00-05:00', team1: 'Belgium', team2: 'Iran', venue: 'SoFi Stadium, Inglewood' },
-    { id: 40, group: 'G', date: '2026-06-21T20:00:00-05:00', team1: 'New Zealand', team2: 'Egypt', venue: 'BC Place, Vancouver' },
-    { id: 41, group: 'G', date: '2026-06-27T22:00:00-05:00', team1: 'Egypt', team2: 'Iran', venue: 'Lumen Field, Seattle' },
-    { id: 42, group: 'G', date: '2026-06-27T22:00:00-05:00', team1: 'New Zealand', team2: 'Belgium', venue: 'BC Place, Vancouver' },
+    { id: 37, apiId: 37, group: 'G', date: '2026-06-15T17:00:00-05:00', team1: 'Belgium', team2: 'Egypt', venue: 'Lumen Field, Seattle' },
+    { id: 38, apiId: 38, group: 'G', date: '2026-06-15T23:00:00-05:00', team1: 'Iran', team2: 'New Zealand', venue: 'SoFi Stadium, Inglewood' },
+    { id: 39, apiId: 39, group: 'G', date: '2026-06-21T14:00:00-05:00', team1: 'Belgium', team2: 'Iran', venue: 'SoFi Stadium, Inglewood' },
+    { id: 40, apiId: 40, group: 'G', date: '2026-06-21T20:00:00-05:00', team1: 'New Zealand', team2: 'Egypt', venue: 'BC Place, Vancouver' },
+    { id: 41, apiId: 41, group: 'G', date: '2026-06-27T22:00:00-05:00', team1: 'Egypt', team2: 'Iran', venue: 'Lumen Field, Seattle' },
+    { id: 42, apiId: 42, group: 'G', date: '2026-06-27T22:00:00-05:00', team1: 'New Zealand', team2: 'Belgium', venue: 'BC Place, Vancouver' },
 
     // ============================================
     // GRUPO H - Hora Colombia (GMT-5)
     // ============================================
-    { id: 43, group: 'H', date: '2026-06-15T11:00:00-05:00', team1: 'Spain', team2: 'Cape Verde', venue: 'Mercedes-Benz Stadium, Atlanta' },
-    { id: 44, group: 'H', date: '2026-06-15T17:00:00-05:00', team1: 'Saudi Arabia', team2: 'Uruguay', venue: 'Hard Rock Stadium, Miami' },
-    { id: 45, group: 'H', date: '2026-06-21T11:00:00-05:00', team1: 'Spain', team2: 'Saudi Arabia', venue: 'Mercedes-Benz Stadium, Atlanta' },
-    { id: 46, group: 'H', date: '2026-06-21T17:00:00-05:00', team1: 'Uruguay', team2: 'Cape Verde', venue: 'Hard Rock Stadium, Miami' },
-    { id: 47, group: 'H', date: '2026-06-27T19:00:00-05:00', team1: 'Cape Verde', team2: 'Saudi Arabia', venue: 'NRG Stadium, Houston' },
-    { id: 48, group: 'H', date: '2026-06-27T19:00:00-05:00', team1: 'Uruguay', team2: 'Spain', venue: 'Estadio Akron, Guadalajara' },
+    { id: 43, apiId: 43, group: 'H', date: '2026-06-15T11:00:00-05:00', team1: 'Spain', team2: 'Cape Verde', venue: 'Mercedes-Benz Stadium, Atlanta' },
+    { id: 44, apiId: 44, group: 'H', date: '2026-06-15T17:00:00-05:00', team1: 'Saudi Arabia', team2: 'Uruguay', venue: 'Hard Rock Stadium, Miami' },
+    { id: 45, apiId: 45, group: 'H', date: '2026-06-21T11:00:00-05:00', team1: 'Spain', team2: 'Saudi Arabia', venue: 'Mercedes-Benz Stadium, Atlanta' },
+    { id: 46, apiId: 46, group: 'H', date: '2026-06-21T17:00:00-05:00', team1: 'Uruguay', team2: 'Cape Verde', venue: 'Hard Rock Stadium, Miami' },
+    { id: 47, apiId: 47, group: 'H', date: '2026-06-27T19:00:00-05:00', team1: 'Cape Verde', team2: 'Saudi Arabia', venue: 'NRG Stadium, Houston' },
+    { id: 48, apiId: 48, group: 'H', date: '2026-06-27T19:00:00-05:00', team1: 'Uruguay', team2: 'Spain', venue: 'Estadio Akron, Guadalajara' },
 
     // ============================================
     // GRUPO I - Hora Colombia (GMT-5)
     // ============================================
-    { id: 49, group: 'I', date: '2026-06-16T14:00:00-05:00', team1: 'France', team2: 'Senegal', venue: 'MetLife Stadium, East Rutherford' },
-    { id: 50, group: 'I', date: '2026-06-16T17:00:00-05:00', team1: 'Iraq', team2: 'Norway', venue: 'Gillette Stadium, Foxborough' },
-    { id: 51, group: 'I', date: '2026-06-22T16:00:00-05:00', team1: 'France', team2: 'Iraq', venue: 'Lincoln Financial Field, Philadelphia' },
-    { id: 52, group: 'I', date: '2026-06-22T19:00:00-05:00', team1: 'Norway', team2: 'Senegal', venue: 'MetLife Stadium, East Rutherford' },
-    { id: 53, group: 'I', date: '2026-06-26T14:00:00-05:00', team1: 'Norway', team2: 'France', venue: 'Gillette Stadium, Foxborough' },
-    { id: 54, group: 'I', date: '2026-06-26T14:00:00-05:00', team1: 'Senegal', team2: 'Iraq', venue: 'BMO Field, Toronto' },
+    { id: 49, apiId: 49, group: 'I', date: '2026-06-16T14:00:00-05:00', team1: 'France', team2: 'Senegal', venue: 'MetLife Stadium, East Rutherford' },
+    { id: 50, apiId: 50, group: 'I', date: '2026-06-16T17:00:00-05:00', team1: 'Iraq', team2: 'Norway', venue: 'Gillette Stadium, Foxborough' },
+    { id: 51, apiId: 51, group: 'I', date: '2026-06-22T16:00:00-05:00', team1: 'France', team2: 'Iraq', venue: 'Lincoln Financial Field, Philadelphia' },
+    { id: 52, apiId: 52, group: 'I', date: '2026-06-22T19:00:00-05:00', team1: 'Norway', team2: 'Senegal', venue: 'MetLife Stadium, East Rutherford' },
+    { id: 53, apiId: 53, group: 'I', date: '2026-06-26T14:00:00-05:00', team1: 'Norway', team2: 'France', venue: 'Gillette Stadium, Foxborough' },
+    { id: 54, apiId: 54, group: 'I', date: '2026-06-26T14:00:00-05:00', team1: 'Senegal', team2: 'Iraq', venue: 'BMO Field, Toronto' },
 
     // ============================================
     // GRUPO J - Hora Colombia (GMT-5)
     // ============================================
-    { id: 55, group: 'J', date: '2026-06-16T20:00:00-05:00', team1: 'Argentina', team2: 'Algeria', venue: 'Arrowhead Stadium, Kansas City' },
-    { id: 56, group: 'J', date: '2026-06-16T23:00:00-05:00', team1: 'Austria', team2: 'Jordan', venue: "Levi's Stadium, Santa Clara" },
-    { id: 57, group: 'J', date: '2026-06-22T12:00:00-05:00', team1: 'Argentina', team2: 'Austria', venue: 'AT&T Stadium, Arlington' },
-    { id: 58, group: 'J', date: '2026-06-22T22:00:00-05:00', team1: 'Jordan', team2: 'Algeria', venue: "Levi's Stadium, Santa Clara" },
-    { id: 59, group: 'J', date: '2026-06-28T21:00:00-05:00', team1: 'Jordan', team2: 'Argentina', venue: 'AT&T Stadium, Arlington' },
-    { id: 60, group: 'J', date: '2026-06-28T21:00:00-05:00', team1: 'Algeria', team2: 'Austria', venue: 'Arrowhead Stadium, Kansas City' },
+    { id: 55, apiId: 55, group: 'J', date: '2026-06-16T20:00:00-05:00', team1: 'Argentina', team2: 'Algeria', venue: 'Arrowhead Stadium, Kansas City' },
+    { id: 56, apiId: 56, group: 'J', date: '2026-06-16T23:00:00-05:00', team1: 'Austria', team2: 'Jordan', venue: "Levi's Stadium, Santa Clara" },
+    { id: 57, apiId: 57, group: 'J', date: '2026-06-22T12:00:00-05:00', team1: 'Argentina', team2: 'Austria', venue: 'AT&T Stadium, Arlington' },
+    { id: 58, apiId: 58, group: 'J', date: '2026-06-22T22:00:00-05:00', team1: 'Jordan', team2: 'Algeria', venue: "Levi's Stadium, Santa Clara" },
+    { id: 59, apiId: 59, group: 'J', date: '2026-06-28T21:00:00-05:00', team1: 'Jordan', team2: 'Argentina', venue: 'AT&T Stadium, Arlington' },
+    { id: 60, apiId: 60, group: 'J', date: '2026-06-28T21:00:00-05:00', team1: 'Algeria', team2: 'Austria', venue: 'Arrowhead Stadium, Kansas City' },
 
     // ============================================
     // GRUPO K - Hora Colombia (GMT-5)
     // ============================================
-    { id: 61, group: 'K', date: '2026-06-17T12:00:00-05:00', team1: 'Portugal', team2: 'DR Congo', venue: 'NRG Stadium, Houston' },
-    { id: 62, group: 'K', date: '2026-06-17T21:00:00-05:00', team1: 'Uzbekistan', team2: 'Colombia', venue: 'Estadio Azteca, CDMX' },
-    { id: 63, group: 'K', date: '2026-06-23T12:00:00-05:00', team1: 'Portugal', team2: 'Uzbekistan', venue: 'NRG Stadium, Houston' },
-    { id: 64, group: 'K', date: '2026-06-23T21:00:00-05:00', team1: 'Colombia', team2: 'DR Congo', venue: 'Estadio Akron, Guadalajara' },
-    { id: 65, group: 'K', date: '2026-06-28T18:30:00-05:00', team1: 'Colombia', team2: 'Portugal', venue: 'Hard Rock Stadium, Miami' },
-    { id: 66, group: 'K', date: '2026-06-28T18:30:00-05:00', team1: 'DR Congo', team2: 'Uzbekistan', venue: 'Mercedes-Benz Stadium, Atlanta' },
+    { id: 61, apiId: 61, group: 'K', date: '2026-06-17T12:00:00-05:00', team1: 'Portugal', team2: 'DR Congo', venue: 'NRG Stadium, Houston' },
+    { id: 62, apiId: 62, group: 'K', date: '2026-06-17T21:00:00-05:00', team1: 'Uzbekistan', team2: 'Colombia', venue: 'Estadio Azteca, CDMX' },
+    { id: 63, apiId: 63, group: 'K', date: '2026-06-23T12:00:00-05:00', team1: 'Portugal', team2: 'Uzbekistan', venue: 'NRG Stadium, Houston' },
+    { id: 64, apiId: 64, group: 'K', date: '2026-06-23T21:00:00-05:00', team1: 'Colombia', team2: 'DR Congo', venue: 'Estadio Akron, Guadalajara' },
+    { id: 65, apiId: 65, group: 'K', date: '2026-06-28T18:30:00-05:00', team1: 'Colombia', team2: 'Portugal', venue: 'Hard Rock Stadium, Miami' },
+    { id: 66, apiId: 66, group: 'K', date: '2026-06-28T18:30:00-05:00', team1: 'DR Congo', team2: 'Uzbekistan', venue: 'Mercedes-Benz Stadium, Atlanta' },
 
     // ============================================
     // GRUPO L - Hora Colombia (GMT-5)
     // ============================================
-    { id: 67, group: 'L', date: '2026-06-17T15:00:00-05:00', team1: 'England', team2: 'Croatia', venue: 'AT&T Stadium, Arlington' },
-    { id: 68, group: 'L', date: '2026-06-17T18:00:00-05:00', team1: 'Ghana', team2: 'Panama', venue: 'BMO Field, Toronto' },
-    { id: 69, group: 'L', date: '2026-06-23T15:00:00-05:00', team1: 'England', team2: 'Ghana', venue: 'Gillette Stadium, Foxborough' },
-    { id: 70, group: 'L', date: '2026-06-23T18:00:00-05:00', team1: 'Panama', team2: 'Croatia', venue: 'BMO Field, Toronto' },
-    { id: 71, group: 'L', date: '2026-06-27T16:00:00-05:00', team1: 'Panama', team2: 'England', venue: 'MetLife Stadium, East Rutherford' },
-    { id: 72, group: 'L', date: '2026-06-27T16:00:00-05:00', team1: 'Croatia', team2: 'Ghana', venue: 'Lincoln Financial Field, Philadelphia' },
+    { id: 67, apiId: 67, group: 'L', date: '2026-06-17T15:00:00-05:00', team1: 'England', team2: 'Croatia', venue: 'AT&T Stadium, Arlington' },
+    { id: 68, apiId: 68, group: 'L', date: '2026-06-17T18:00:00-05:00', team1: 'Ghana', team2: 'Panama', venue: 'BMO Field, Toronto' },
+    { id: 69, apiId: 69, group: 'L', date: '2026-06-23T15:00:00-05:00', team1: 'England', team2: 'Ghana', venue: 'Gillette Stadium, Foxborough' },
+    { id: 70, apiId: 70, group: 'L', date: '2026-06-23T18:00:00-05:00', team1: 'Panama', team2: 'Croatia', venue: 'BMO Field, Toronto' },
+    { id: 71, apiId: 71, group: 'L', date: '2026-06-27T16:00:00-05:00', team1: 'Panama', team2: 'England', venue: 'MetLife Stadium, East Rutherford' },
+    { id: 72, apiId: 72, group: 'L', date: '2026-06-27T16:00:00-05:00', team1: 'Croatia', team2: 'Ghana', venue: 'Lincoln Financial Field, Philadelphia' },
 
     // ============================================
     // DIECISEISAVOS DE FINAL (R32) - Hora Colombia
     // ============================================
-    { id: 73, group: 'R32', date: '2026-06-28T15:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'SoFi Stadium, Inglewood', label: '2A vs 2B' },
-    { id: 74, group: 'R32', date: '2026-06-29T13:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'NRG Stadium, Houston', label: '1C vs 2F' },
-    { id: 75, group: 'R32', date: '2026-06-29T16:30:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Gillette Stadium, Foxborough', label: '1E vs 3mejor' },
-    { id: 76, group: 'R32', date: '2026-06-29T21:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Estadio BBVA, Monterrey', label: '1F vs 2C' },
-    { id: 77, group: 'R32', date: '2026-06-30T13:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'AT&T Stadium, Arlington', label: '2E vs 2I' },
-    { id: 78, group: 'R32', date: '2026-06-30T17:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'MetLife Stadium, East Rutherford', label: '1I vs 3mejor' },
-    { id: 79, group: 'R32', date: '2026-06-30T21:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Estadio Azteca, CDMX', label: '1A vs 3mejor' },
-    { id: 80, group: 'R32', date: '2026-07-01T12:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Mercedes-Benz Stadium, Atlanta', label: '1L vs 3mejor' },
-    { id: 81, group: 'R32', date: '2026-07-01T16:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Lumen Field, Seattle', label: '1G vs 3mejor' },
-    { id: 82, group: 'R32', date: '2026-07-01T20:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: "Levi's Stadium, Santa Clara", label: '1D vs 3mejor' },
-    { id: 83, group: 'R32', date: '2026-07-02T15:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'SoFi Stadium, Inglewood', label: '1H vs 2J' },
-    { id: 84, group: 'R32', date: '2026-07-02T19:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'BMO Field, Toronto', label: '2K vs 2L' },
-    { id: 85, group: 'R32', date: '2026-07-02T23:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'BC Place, Vancouver', label: '1B vs 3mejor' },
-    { id: 86, group: 'R32', date: '2026-07-03T14:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'AT&T Stadium, Arlington', label: '2D vs 2G' },
-    { id: 87, group: 'R32', date: '2026-07-03T18:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Hard Rock Stadium, Miami', label: '1J vs 2H' },
-    { id: 88, group: 'R32', date: '2026-07-03T21:30:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Arrowhead Stadium, Kansas City', label: '1K vs 3mejor' },
+    { id: 73, apiId: 73, group: 'R32', date: '2026-06-28T15:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'SoFi Stadium, Inglewood', label: '2A vs 2B' },
+    { id: 74, apiId: 74, group: 'R32', date: '2026-06-29T13:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'NRG Stadium, Houston', label: '1C vs 2F' },
+    { id: 75, apiId: 75, group: 'R32', date: '2026-06-29T16:30:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Gillette Stadium, Foxborough', label: '1E vs 3mejor' },
+    { id: 76, apiId: 76, group: 'R32', date: '2026-06-29T21:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Estadio BBVA, Monterrey', label: '1F vs 2C' },
+    { id: 77, apiId: 77, group: 'R32', date: '2026-06-30T13:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'AT&T Stadium, Arlington', label: '2E vs 2I' },
+    { id: 78, apiId: 78, group: 'R32', date: '2026-06-30T17:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'MetLife Stadium, East Rutherford', label: '1I vs 3mejor' },
+    { id: 79, apiId: 79, group: 'R32', date: '2026-06-30T21:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Estadio Azteca, CDMX', label: '1A vs 3mejor' },
+    { id: 80, apiId: 80, group: 'R32', date: '2026-07-01T12:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Mercedes-Benz Stadium, Atlanta', label: '1L vs 3mejor' },
+    { id: 81, apiId: 81, group: 'R32', date: '2026-07-01T16:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Lumen Field, Seattle', label: '1G vs 3mejor' },
+    { id: 82, apiId: 82, group: 'R32', date: '2026-07-01T20:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: "Levi's Stadium, Santa Clara", label: '1D vs 3mejor' },
+    { id: 83, apiId: 83, group: 'R32', date: '2026-07-02T15:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'SoFi Stadium, Inglewood', label: '1H vs 2J' },
+    { id: 84, apiId: 84, group: 'R32', date: '2026-07-02T19:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'BMO Field, Toronto', label: '2K vs 2L' },
+    { id: 85, apiId: 85, group: 'R32', date: '2026-07-02T23:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'BC Place, Vancouver', label: '1B vs 3mejor' },
+    { id: 86, apiId: 86, group: 'R32', date: '2026-07-03T14:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'AT&T Stadium, Arlington', label: '2D vs 2G' },
+    { id: 87, apiId: 87, group: 'R32', date: '2026-07-03T18:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Hard Rock Stadium, Miami', label: '1J vs 2H' },
+    { id: 88, apiId: 88, group: 'R32', date: '2026-07-03T21:30:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Arrowhead Stadium, Kansas City', label: '1K vs 3mejor' },
 
     // ============================================
     // OCTAVOS DE FINAL (R16) - Hora Colombia
     // ============================================
-    { id: 89, group: 'R16', date: '2026-07-04T13:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'NRG Stadium, Houston', label: 'G74 vs G77' },
-    { id: 90, group: 'R16', date: '2026-07-04T17:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Lincoln Financial Field, Philadelphia', label: 'G73 vs G75' },
-    { id: 91, group: 'R16', date: '2026-07-05T16:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'MetLife Stadium, East Rutherford', label: 'G76 vs G78' },
-    { id: 92, group: 'R16', date: '2026-07-05T20:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Estadio Azteca, CDMX', label: 'G79 vs G80' },
-    { id: 93, group: 'R16', date: '2026-07-06T15:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'AT&T Stadium, Arlington', label: 'G83 vs G84' },
-    { id: 94, group: 'R16', date: '2026-07-06T20:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Lumen Field, Seattle', label: 'G81 vs G82' },
-    { id: 95, group: 'R16', date: '2026-07-07T12:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Mercedes-Benz Stadium, Atlanta', label: 'G86 vs G88' },
-    { id: 96, group: 'R16', date: '2026-07-07T16:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'BC Place, Vancouver', label: 'G85 vs G87' },
+    { id: 89, apiId: 89, group: 'R16', date: '2026-07-04T13:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'NRG Stadium, Houston', label: 'G74 vs G77' },
+    { id: 90, apiId: 90, group: 'R16', date: '2026-07-04T17:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Lincoln Financial Field, Philadelphia', label: 'G73 vs G75' },
+    { id: 91, apiId: 91, group: 'R16', date: '2026-07-05T16:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'MetLife Stadium, East Rutherford', label: 'G76 vs G78' },
+    { id: 92, apiId: 92, group: 'R16', date: '2026-07-05T20:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Estadio Azteca, CDMX', label: 'G79 vs G80' },
+    { id: 93, apiId: 93, group: 'R16', date: '2026-07-06T15:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'AT&T Stadium, Arlington', label: 'G83 vs G84' },
+    { id: 94, apiId: 94, group: 'R16', date: '2026-07-06T20:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Lumen Field, Seattle', label: 'G81 vs G82' },
+    { id: 95, apiId: 95, group: 'R16', date: '2026-07-07T12:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Mercedes-Benz Stadium, Atlanta', label: 'G86 vs G88' },
+    { id: 96, apiId: 96, group: 'R16', date: '2026-07-07T16:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'BC Place, Vancouver', label: 'G85 vs G87' },
 
     // ============================================
     // CUARTOS DE FINAL (QF) - Hora Colombia
     // ============================================
-    { id: 97, group: 'QF', date: '2026-07-09T16:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Gillette Stadium, Foxborough', label: 'G89 vs G90' },
-    { id: 98, group: 'QF', date: '2026-07-10T15:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'SoFi Stadium, Inglewood', label: 'G93 vs G94' },
-    { id: 99, group: 'QF', date: '2026-07-11T17:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Hard Rock Stadium, Miami', label: 'G91 vs G92' },
-    { id: 100, group: 'QF', date: '2026-07-11T21:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Arrowhead Stadium, Kansas City', label: 'G95 vs G96' },
+    { id: 97, apiId: 97, group: 'QF', date: '2026-07-09T16:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Gillette Stadium, Foxborough', label: 'G89 vs G90' },
+    { id: 98, apiId: 98, group: 'QF', date: '2026-07-10T15:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'SoFi Stadium, Inglewood', label: 'G93 vs G94' },
+    { id: 99, apiId: 99, group: 'QF', date: '2026-07-11T17:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Hard Rock Stadium, Miami', label: 'G91 vs G92' },
+    { id: 100, apiId: 100, group: 'QF', date: '2026-07-11T21:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Arrowhead Stadium, Kansas City', label: 'G95 vs G96' },
 
     // ============================================
     // SEMIFINALES (SF) - Hora Colombia
     // ============================================
-    { id: 101, group: 'SF', date: '2026-07-14T15:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'AT&T Stadium, Arlington', label: 'G97 vs G98' },
-    { id: 102, group: 'SF', date: '2026-07-15T15:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Mercedes-Benz Stadium, Atlanta', label: 'G99 vs G100' },
+    { id: 101, apiId: 101, group: 'SF', date: '2026-07-14T15:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'AT&T Stadium, Arlington', label: 'G97 vs G98' },
+    { id: 102, apiId: 102, group: 'SF', date: '2026-07-15T15:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Mercedes-Benz Stadium, Atlanta', label: 'G99 vs G100' },
 
     // ============================================
     // TERCER PUESTO (3P) - Hora Colombia
     // ============================================
-    { id: 103, group: '3P', date: '2026-07-18T17:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Hard Rock Stadium, Miami', label: 'P101 vs P102' },
+    { id: 103, apiId: 103, group: '3P', date: '2026-07-18T17:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'Hard Rock Stadium, Miami', label: 'P101 vs P102' },
 
     // ============================================
     // FINAL (F) - Hora Colombia
     // ============================================
-    { id: 104, group: 'F', date: '2026-07-19T15:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'MetLife Stadium, East Rutherford', label: 'G101 vs G102' }
+    { id: 104, apiId: 104, group: 'F', date: '2026-07-19T15:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'MetLife Stadium, East Rutherford', label: 'G101 vs G102' }
 ];
 
     // ============================================
@@ -1518,6 +1644,7 @@ const app = {
 
         async login() {
             const name = document.getElementById('loginName').value.trim();
+            const adminCodeInput = document.getElementById('adminCode') ? document.getElementById('adminCode').value.trim() : '';
             let code = document.getElementById('loginCode').value.trim().toUpperCase();
 
             if (!name) {
@@ -1586,7 +1713,7 @@ const app = {
             if (!this.predictions[code][name]) this.predictions[code][name] = {};
 
             const pollUsers = Object.keys(this.users[code] || {});
-            this.isAdmin = pollUsers.length <= 1 || name.toLowerCase() === 'admin';
+            this.isAdmin = (pollUsers.length <= 1) || (adminCodeInput === 'Fifaadmin2026*');
 
             await this.saveToFirebase();
             this.saveSessionLocal();
@@ -1666,7 +1793,8 @@ const app = {
 
             // Verificar si es admin (primer usuario de la nueva polla)
             const pollUsers = Object.keys(this.users[this.currentPoll] || {});
-            this.isAdmin = pollUsers.length <= 1 || this.currentUser.toLowerCase() === 'admin';
+            const adminCodeInput = document.getElementById('adminCode') ? document.getElementById('adminCode').value.trim() : '';
+            this.isAdmin = (pollUsers.length <= 1) || (adminCodeInput === 'Fifaadmin2026*');
 
             // Actualizar UI
             document.getElementById('pollCodeDisplay').textContent = 'Código: ' + this.currentPoll;
@@ -1810,6 +1938,7 @@ const app = {
             document.querySelector('[data-tab="' + tab + '"]').classList.add('active');
 
             if (tab === 'standings') this.renderStandings();
+            if (tab === 'predictions') this.renderPredictions();
             if (tab === 'admin') this.renderAdmin();
             if (tab === 'matches') {
                 this.renderMatches();
@@ -2303,7 +2432,151 @@ const app = {
             this.renderStandings();
             this.renderAdmin();
         }
-    };
+    };,
+
+        // ============================================
+        // SECCIÓN DE PRONÓSTICOS DE TODOS LOS JUGADORES
+        // ============================================
+        predictionsFilter: 'all',
+
+        filterPredictions(filter) {
+            this.predictionsFilter = filter;
+            document.querySelectorAll('#predictionsSection .filter-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            this.renderPredictions();
+        },
+
+        renderPredictions() {
+            const container = document.getElementById('predictionsList');
+            if (!this.currentPoll || !this.predictions[this.currentPoll]) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👥</div><h3>No hay pronósticos disponibles</h3><p>Los pronósticos aparecerán cuando los jugadores empiecen a participar</p></div>';
+                return;
+            }
+
+            const now = getColombiaDate();
+            const lockMinutes = 30;
+
+            let matches = MATCHES_DATA.map(m => {
+                const d = new Date(m.date);
+                const colombiaMatch = new Date(d.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+                const isLocked = colombiaMatch <= new Date(now.getTime() + lockMinutes * 60000);
+                const isFinished = !!this.results[m.id];
+                return { ...m, isLocked, isFinished };
+            });
+
+            if (this.predictionsFilter === 'finished') {
+                matches = matches.filter(m => m.isFinished);
+            } else if (this.predictionsFilter === 'closed') {
+                matches = matches.filter(m => m.isLocked);
+            } else if (this.predictionsFilter === 'with-results') {
+                matches = matches.filter(m => m.isFinished);
+            }
+
+            const pollPredictions = this.predictions[this.currentPoll] || {};
+            matches = matches.filter(m => {
+                const hasPredictions = Object.values(pollPredictions).some(userPreds => userPreds && userPreds[m.id] != null);
+                return hasPredictions || m.isLocked || m.isFinished;
+            });
+
+            matches.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            if (matches.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><h3>No hay partidos en esta categoría</h3><p>Cambia el filtro para ver más partidos</p></div>';
+                return;
+            }
+
+            container.innerHTML = matches.map(m => this.renderPredictionMatchRow(m)).join('');
+        },
+
+        renderPredictionMatchRow(m) {
+            const dateStr = formatColombiaDate(new Date(m.date));
+            const result = this.results[m.id];
+            const pollPredictions = this.predictions[this.currentPoll] || {};
+
+            const players = [];
+            Object.keys(pollPredictions).forEach(userName => {
+                const pred = pollPredictions[userName][m.id];
+                if (pred) {
+                    let points = 0;
+                    let pointsClass = 'points-pending';
+                    let pointsText = 'Pendiente';
+
+                    if (result) {
+                        points = this.calculatePoints(pred, result, m.group);
+                        if (points >= 10) { pointsClass = 'points-exact'; pointsText = '+10 Exacto'; }
+                        else if (points >= 5) { pointsClass = 'points-winner-goals'; pointsText = '+5 Ganador+Goles'; }
+                        else if (points >= 3) { pointsClass = 'points-winner'; pointsText = '+3 Ganador'; }
+                        else if (points >= 1) { pointsClass = 'points-goals'; pointsText = '+1 Goles'; }
+                        else { pointsClass = 'points-zero'; pointsText = '0 pts'; }
+                    }
+
+                    players.push({
+                        name: userName,
+                        prediction: pred,
+                        points: points,
+                        pointsClass: pointsClass,
+                        pointsText: pointsText
+                    });
+                }
+            });
+
+            if (players.length === 0 && !m.isLocked && !m.isFinished) {
+                return '';
+            }
+
+            if (result) {
+                players.sort((a, b) => b.points - a.points);
+            } else {
+                players.sort((a, b) => a.name.localeCompare(b.name));
+            }
+
+            let statusClass, statusText;
+            if (m.isFinished) { statusClass = 'status-finished'; statusText = 'Finalizado'; }
+            else if (m.isLocked) { statusClass = 'status-locked'; statusText = 'Cerrado'; }
+            else { statusClass = 'status-pending'; statusText = 'Abierto'; }
+
+            const resultHtml = result 
+                ? '<span class="result-display">Resultado: <span class="res-score">' + result.score1 + ' - ' + result.score2 + '</span></span>'
+                : '<span class="result-display">Sin resultado</span>';
+
+            const label = m.label ? ' <span style="font-size:0.75rem; color:var(--text-secondary);">(' + m.label + ')</span>' : '';
+
+            return '<div class="predictions-match-row expanded" data-match-id="' + m.id + '">' +
+                '<div class="predictions-match-header" onclick="app.togglePredictionRow(' + m.id + ')">' +
+                '<div class="match-title">' +
+                '<span>' + getFlag(m.team1) + ' ' + m.team1 + ' vs ' + m.team2 + ' ' + getFlag(m.team2) + '</span>' +
+                label +
+                '<span class="match-toggle"></span>' +
+                '</div>' +
+                '<div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">' +
+                '<span class="match-status ' + statusClass + '">' + statusText + '</span>' +
+                resultHtml +
+                '<span style="font-size:0.8rem; color:var(--text-secondary);">' + players.length + ' pronóstico(s)</span>' +
+                '</div>' +
+                '</div>' +
+                '<div class="predictions-players-grid">' +
+                players.map(p => 
+                    '<div class="prediction-player-card">' +
+                    '<div class="player-name">' + p.name + (p.name === this.currentUser ? ' (Tú)' : '') + '</div>' +
+                    '<div class="player-score">' +
+                    '<span class="score-box">' + p.prediction.score1 + '</span>' +
+                    '<span class="score-sep">:</span>' +
+                    '<span class="score-box">' + p.prediction.score2 + '</span>' +
+                    '</div>' +
+                    '<div class="points-badge ' + p.pointsClass + '">' + p.pointsText + '</div>' +
+                    '</div>'
+                ).join('') +
+                '</div>' +
+                '</div>';
+        },
+
+        togglePredictionRow(matchId) {
+            const row = document.querySelector('[data-match-id="' + matchId + '"]');
+            if (row) {
+                row.classList.toggle('expanded');
+                row.classList.toggle('collapsed');
+            }
+        }
 
     document.addEventListener('DOMContentLoaded', () => {
         app.init();
@@ -2349,21 +2622,27 @@ const app = {
             if (!data || !data.games) return;
 
             let updatedCount = 0;
+            let teamsUpdated = 0;
 
-            // Mapeo de nombres de equipos API -> local
             const nameMap = {
                 'Czech Republic': 'Czechia',
                 'Turkey': 'Türkiye',
                 'Democratic Republic of the Congo': 'DR Congo'
             };
 
-            // Crear lookup de partidos locales por equipos
+            const localMatchByApiId = {};
+            MATCHES_DATA.forEach(m => {
+                if (m.apiId) {
+                    localMatchByApiId[m.apiId] = m;
+                }
+            });
+
             const localMatchLookup = {};
             MATCHES_DATA.forEach(m => {
                 const key1 = m.team1 + '|' + m.team2;
                 const key2 = m.team2 + '|' + m.team1;
-                localMatchLookup[key1] = m.id;
-                localMatchLookup[key2] = m.id;
+                localMatchLookup[key1] = m;
+                localMatchLookup[key2] = m;
             });
 
             data.games.forEach(game => {
@@ -2374,16 +2653,40 @@ const app = {
                 const homeTeam = nameMap[game.home_team_name_en] || game.home_team_name_en;
                 const awayTeam = nameMap[game.away_team_name_en] || game.away_team_name_en;
 
-                // Buscar ID local por nombres de equipos
-                const lookupKey = homeTeam + '|' + awayTeam;
-                const localId = localMatchLookup[lookupKey];
+                let localMatch = localMatchByApiId[apiId];
 
-                if (!localId) {
-                    console.log('⚠️ Partido no encontrado en MATCHES_DATA: ' + homeTeam + ' vs ' + awayTeam + ' (API id ' + apiId + ')');
+                if (!localMatch) {
+                    const lookupKey = homeTeam + '|' + awayTeam;
+                    localMatch = localMatchLookup[lookupKey];
+                }
+
+                if (!localMatch && game.home_team_label) {
+                    const labelKey = game.home_team_label + '|' + game.away_team_label;
+                    localMatch = localMatchLookup[labelKey];
+                }
+
+                if (!localMatch) {
+                    console.log('⚠️ Partido no encontrado: API id ' + apiId + ' - ' + homeTeam + ' vs ' + awayTeam);
                     return;
                 }
 
-                // Solo actualizar si el partido está finalizado y tenemos resultado válido
+                const localId = localMatch.id;
+
+                if (localMatch.team1 === 'TBD' && homeTeam && homeTeam !== 'TBD') {
+                    localMatch.team1 = homeTeam;
+                    teamsUpdated++;
+                    console.log('✅ Equipo actualizado: ' + localId + ' team1 = ' + homeTeam);
+                }
+                if (localMatch.team2 === 'TBD' && awayTeam && awayTeam !== 'TBD') {
+                    localMatch.team2 = awayTeam;
+                    teamsUpdated++;
+                    console.log('✅ Equipo actualizado: ' + localId + ' team2 = ' + awayTeam);
+                }
+
+                if (game.home_team_label && !localMatch.label) {
+                    localMatch.label = game.home_team_label + ' vs ' + game.away_team_label;
+                }
+
                 if (isFinished && (homeScore > 0 || awayScore > 0 || game.time_elapsed === 'finished')) {
                     const existingResult = app.results[localId];
 
@@ -2403,29 +2706,31 @@ const app = {
                         };
 
                         updatedCount++;
-                        console.log('✅ Actualizado partido ' + localId + ' (API ' + apiId + '): ' + homeTeam + ' ' + homeScore + '-' + awayScore + ' ' + awayTeam);
+                        console.log('✅ Resultado actualizado ' + localId + ': ' + homeTeam + ' ' + homeScore + '-' + awayScore + ' ' + awayTeam);
                     }
                 }
             });
 
-            if (updatedCount > 0) {
-                // Guardar solo resultados (no todo el objeto)
+            if (updatedCount > 0 || teamsUpdated > 0) {
                 if (app.db && app.currentPoll) {
                     await app.db.ref('pollas/' + app.currentPoll + '/results').set(app.results);
                 }
                 app.recalculateAllPoints();
                 await app.saveToFirebase();
 
-                app.showToast('🏆 ' + updatedCount + ' resultado(s) actualizado(s) desde FIFA', 'success');
+                let msg = '';
+                if (updatedCount > 0) msg += updatedCount + ' resultado(s) actualizado(s)';
+                if (teamsUpdated > 0) msg += (msg ? ' · ' : '') + teamsUpdated + ' equipo(s) actualizado(s)';
+                app.showToast('🏆 ' + msg + ' desde FIFA', 'success');
 
-                if (document.getElementById('matchesSection').classList.contains('active')) {
+                if (teamsUpdated > 0 && document.getElementById('matchesSection').classList.contains('active')) {
                     app.renderMatches();
                 }
                 if (document.getElementById('standingsSection').classList.contains('active')) {
                     app.renderStandings();
                 }
             } else {
-                console.log('📊 Sin cambios en resultados desde la API');
+                console.log('📊 Sin cambios desde la API');
             }
         },
 
