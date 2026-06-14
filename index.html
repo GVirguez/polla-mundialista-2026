@@ -916,6 +916,7 @@
 <base target="_blank">
 <base target="_blank">
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
     <!-- LOGIN SCREEN -->
@@ -1113,9 +1114,9 @@
                 <h2 class="section-title">👥 Pronósticos de Todos los Jugadores</h2>
 
                 <div class="filters">
-                    <button class="filter-btn active" onclick="app.filterPredictions('all')">Todos los Partidos</button>
+<button class="filter-btn" onclick="app.filterPredictions('all')">Todos los Partidos</button>
                     <button class="filter-btn" onclick="app.filterPredictions('finished')">Finalizados</button>
-                    <button class="filter-btn" onclick="app.filterPredictions('closed')">Cerrados</button>
+<button class="filter-btn active" onclick="app.filterPredictions('closed')">Cerrados</button>
                     <button class="filter-btn" onclick="app.filterPredictions('with-results')">Con Resultado</button>
                 </div>
 
@@ -1424,7 +1425,7 @@ const app = {
         results: {},
         users: {},
         filter: 'all',
-        predictionsFilter: 'all',
+        predictionsFilter: 'closed',
         syncInterval: null,
         isAdmin: false,
         db: null,
@@ -1620,9 +1621,7 @@ const app = {
                 if (data.predictions) {
                     if (!this.predictions[this.currentPoll]) this.predictions[this.currentPoll] = {};
                     Object.keys(data.predictions).forEach(userName => {
-                        if (userName !== this.currentUser) {
-                            this.predictions[this.currentPoll][userName] = data.predictions[userName];
-                        }
+                        this.predictions[this.currentPoll][userName] = data.predictions[userName];
                     });
                 }
 
@@ -1687,9 +1686,7 @@ const app = {
                             if (!this.predictions) this.predictions = {};
                             if (!this.predictions[code]) this.predictions[code] = {};
                             Object.keys(data.predictions).forEach(userName => {
-                                if (userName !== name) {
-                                    this.predictions[code][userName] = data.predictions[userName];
-                                }
+                                this.predictions[code][userName] = data.predictions[userName];
                             });
                         }
                     }
@@ -2492,6 +2489,8 @@ const app = {
 
             const players = [];
             Object.keys(pollPredictions).forEach(userName => {
+                // Privacy: admin ve todos, usuario solo ve el suyo
+                if (!app.isAdmin && userName !== app.currentUser) { return; }
                 const pred = pollPredictions[userName][m.id];
                 if (pred) {
                     let points = 0;
