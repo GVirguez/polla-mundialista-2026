@@ -1481,8 +1481,8 @@ const app = {
         },
 
         cleanSimulatedResults() {
-            // Limpiar resultados que no vienen de la API (simulaciones/pruebas)
-            // para evitar que partidos futuros aparezcan como finalizados
+            // Limpiar resultados de partidos que aún no se han jugado
+            // IGNORAR source - eliminar CUALQUIER resultado de partido futuro
             const now = getColombiaDate();
             let cleaned = 0;
 
@@ -1492,24 +1492,21 @@ const app = {
 
                 if (!match) return;
 
-                // Si el resultado no viene de la API y el partido aún no ha pasado, eliminarlo
                 const matchTime = new Date(match.date);
                 const colombiaMatch = new Date(matchTime.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
                 const twoHoursAfter = new Date(colombiaMatch.getTime() + 2 * 60 * 60000);
-
-                const isFromAPI = result.source === 'worldcup26.ir';
                 const matchPassed = twoHoursAfter <= now;
 
-                if (!isFromAPI && !matchPassed) {
-                    console.log('🧹 Eliminando resultado simulado del partido ' + matchId + ': ' + match.team1 + ' vs ' + match.team2);
+                // Eliminar CUALQUIER resultado de partido que aún no se ha jugado
+                if (!matchPassed) {
+                    console.log('🧹 Eliminando resultado de partido futuro: ' + matchId + ' (' + match.team1 + ' vs ' + match.team2 + ' - ' + match.date + ')');
                     delete this.results[matchId];
                     cleaned++;
                 }
             });
 
             if (cleaned > 0) {
-                console.log('🧹 ' + cleaned + ' resultado(s) simulado(s) eliminado(s)');
-                // Guardar resultados limpios en Firebase
+                console.log('🧹 ' + cleaned + ' resultado(s) de partidos futuros eliminado(s)');
                 if (this.db && this.currentPoll) {
                     this.db.ref('pollas/' + this.currentPoll + '/results').set(this.results);
                 }
@@ -1585,7 +1582,7 @@ const app = {
                         });
                     }
 
-                    // Actualizar resultados (filtrar simulados de partidos futuros)
+                    // Actualizar resultados (SOLO partidos ya jugados)
                     if (data.results) {
                         const now = getColombiaDate();
                         Object.keys(data.results).forEach(matchId => {
@@ -1595,12 +1592,11 @@ const app = {
                             const matchTime = new Date(match.date);
                             const colombiaMatch = new Date(matchTime.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
                             const twoHoursAfter = new Date(colombiaMatch.getTime() + 2 * 60 * 60000);
-                            const isFromAPI = result.source === 'worldcup26.ir';
                             const matchPassed = twoHoursAfter <= now;
-                            if (isFromAPI || matchPassed) {
+                            if (matchPassed) {
                                 this.results[matchId] = result;
                             } else {
-                                console.log('🧹 Ignorando resultado simulado de partido futuro: ' + matchId);
+                                console.log('⏭️ Ignorando resultado de partido futuro: ' + matchId + ' (' + match.date + ')');
                             }
                         });
                     }
@@ -1658,7 +1654,7 @@ const app = {
                     });
                 }
 
-                // Actualizar resultados (filtrar simulados de partidos futuros)
+                // Actualizar resultados (SOLO partidos ya jugados)
                 if (data.results) {
                     const now = getColombiaDate();
                     let hasNewResults = false;
@@ -1669,15 +1665,16 @@ const app = {
                         const matchTime = new Date(match.date);
                         const colombiaMatch = new Date(matchTime.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
                         const twoHoursAfter = new Date(colombiaMatch.getTime() + 2 * 60 * 60000);
-                        const isFromAPI = result.source === 'worldcup26.ir';
                         const matchPassed = twoHoursAfter <= now;
-                        if (isFromAPI || matchPassed) {
+                        if (matchPassed) {
                             if (!this.results[matchId] || 
                                 this.results[matchId].score1 !== result.score1 || 
                                 this.results[matchId].score2 !== result.score2) {
                                 this.results[matchId] = result;
                                 hasNewResults = true;
                             }
+                        } else {
+                            console.log('⏭️ Ignorando resultado de partido futuro: ' + matchId + ' (' + match.date + ')');
                         }
                     });
                     if (hasNewResults) {
@@ -2027,13 +2024,12 @@ const app = {
                 const colombiaMatch = new Date(d.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
                 const isLocked = colombiaMatch <= new Date(colombiaNow.getTime() + lockMinutes * 60000);
 
-                // isFinished: solo true si hay resultado válido (de la API o partido ya pasó)
+                // isFinished: SOLO si el partido YA TERMINÓ (fecha pasada + 2 horas)
+                // IGNORAR completamente lo que diga la API sobre partidos futuros
                 const result = app.results[m.id];
-                const isFinished = result && (
-                    result.source === 'worldcup26.ir' || 
-                    result.finished === true ||
-                    colombiaMatch < new Date(colombiaNow.getTime() - 2 * 60 * 60000)
-                );
+                const twoHoursAfter = new Date(colombiaMatch.getTime() + 2 * 60 * 60000);
+                const matchAlreadyPlayed = twoHoursAfter <= colombiaNow;
+                const isFinished = result && matchAlreadyPlayed;
 
                 return {
                     ...m,
@@ -2547,7 +2543,7 @@ const app = {
         },
 
         async cleanResults() {
-            if (!confirm('¿Eliminar resultados simulados de partidos futuros? Los oficiales de la API se mantendrán.')) return;
+            if (!confirm('¿Eliminar resultados de partidos que aún no se han jugado?')) return;
             const now = getColombiaDate();
             let cleaned = 0;
             Object.keys(this.results).forEach(matchId => {
@@ -2557,9 +2553,10 @@ const app = {
                 const matchTime = new Date(match.date);
                 const colombiaMatch = new Date(matchTime.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
                 const twoHoursAfter = new Date(colombiaMatch.getTime() + 2 * 60 * 60000);
-                const isFromAPI = result.source === 'worldcup26.ir';
                 const matchPassed = twoHoursAfter <= now;
-                if (!isFromAPI && !matchPassed) {
+                // Eliminar CUALQUIER resultado de partido que aún no se ha jugado
+                if (!matchPassed) {
+                    console.log('🧹 Eliminando resultado de partido futuro: ' + matchId + ' (' + match.team1 + ' vs ' + match.team2 + ' - ' + match.date + ')');
                     delete this.results[matchId];
                     cleaned++;
                 }
@@ -2569,13 +2566,13 @@ const app = {
                     await this.db.ref('pollas/' + this.currentPoll + '/results').set(this.results);
                 }
                 this.recalculateAllPoints();
-                this.showToast('🧹 ' + cleaned + ' resultado(s) simulado(s) eliminado(s)', 'success');
+                this.showToast('🧹 ' + cleaned + ' resultado(s) de partidos futuros eliminado(s)', 'success');
                 this.renderMatches();
                 this.renderStandings();
                 this.renderAdmin();
                 this.updateUserPoints();
             } else {
-                this.showToast('📭 No hay resultados simulados para eliminar', 'info');
+                this.showToast('📭 No hay resultados de partidos futuros para eliminar', 'info');
             }
         },
 
@@ -2819,15 +2816,20 @@ const app = {
                     localMatch.label = game.home_team_label + ' vs ' + game.away_team_label;
                 }
 
-                // Guardar resultado si está finalizado o en vivo
-                if (isFinished || isLive) {
+                // Guardar resultado SOLO si el partido YA TERMINÓ (fecha pasada)
+                // IGNORAR resultados de la API para partidos futuros
+                const matchTime = new Date(localMatch.date);
+                const colombiaMatchTime = new Date(matchTime.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+                const twoHoursAfterMatch = new Date(colombiaMatchTime.getTime() + 2 * 60 * 60000);
+                const now = getColombiaDate();
+                const matchAlreadyPlayed = twoHoursAfterMatch <= now;
+
+                if ((isFinished || isLive) && matchAlreadyPlayed) {
                     const existingResult = app.results[localId];
-                    const isSimulated = existingResult && existingResult.source !== 'worldcup26.ir';
 
                     if (!existingResult || 
                         existingResult.score1 !== homeScore || 
-                        existingResult.score2 !== awayScore ||
-                        isSimulated) {
+                        existingResult.score2 !== awayScore) {
 
                         app.results[localId] = {
                             score1: homeScore,
@@ -2844,6 +2846,8 @@ const app = {
                         updatedCount++;
                         console.log('✅ Resultado actualizado ' + localId + ': ' + homeTeam + ' ' + homeScore + '-' + awayScore + ' ' + awayTeam);
                     }
+                } else if (isFinished && !matchAlreadyPlayed) {
+                    console.log('⏭️ Ignorando resultado de partido futuro: ' + localId + ' (' + localMatch.date + ')');
                 }
             });
 
