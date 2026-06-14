@@ -1144,6 +1144,7 @@
                     <button class="btn btn-secondary btn-sm" onclick="app.importData()">📤 Importar Datos</button>
                     <button class="btn btn-secondary btn-sm" onclick="app.resetPredictions()">🗑️ Resetear Pronósticos</button>
                     <button class="btn btn-secondary btn-sm" onclick="app.simulateResults()">🎲 Simular Resultados</button>
+                    <button class="btn btn-secondary btn-sm" onclick="app.cleanResults()">🧹 Limpiar Resultados Simulados</button>
                 </div>
 
                 <div class="admin-panel">
@@ -1459,8 +1460,6 @@ const app = {
                     if (this.db) {
                         this.loadFromFirebase();
                     }
-                    // 2.5 Limpiar resultados simulados de partidos futuros
-                    this.cleanSimulatedResults();
                     // 3. Si no hay datos locales ni Firebase, inicializar estructuras
                     if (!hasLocalData && this.db) {
                         // Esperar un momento por Firebase, si no hay datos, inicializar
@@ -1488,8 +1487,8 @@ const app = {
             let cleaned = 0;
 
             Object.keys(this.results).forEach(matchId => {
-                const match = MATCHES_DATA.find(m => m.id == matchId);
                 const result = this.results[matchId];
+                const match = MATCHES_DATA.find(m => m.id == matchId);
 
                 if (!match) return;
 
@@ -1586,9 +1585,24 @@ const app = {
                         });
                     }
 
-                    // Actualizar resultados
+                    // Actualizar resultados (filtrar simulados de partidos futuros)
                     if (data.results) {
-                        this.results = { ...this.results, ...data.results };
+                        const now = getColombiaDate();
+                        Object.keys(data.results).forEach(matchId => {
+                            const result = data.results[matchId];
+                            const match = MATCHES_DATA.find(m => m.id == matchId);
+                            if (!match) return;
+                            const matchTime = new Date(match.date);
+                            const colombiaMatch = new Date(matchTime.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+                            const twoHoursAfter = new Date(colombiaMatch.getTime() + 2 * 60 * 60000);
+                            const isFromAPI = result.source === 'worldcup26.ir';
+                            const matchPassed = twoHoursAfter <= now;
+                            if (isFromAPI || matchPassed) {
+                                this.results[matchId] = result;
+                            } else {
+                                console.log('🧹 Ignorando resultado simulado de partido futuro: ' + matchId);
+                            }
+                        });
                     }
 
                     // Actualizar TODOS los pronósticos (incluyendo los del usuario actual)
@@ -1599,9 +1613,6 @@ const app = {
                             this.predictions[this.currentPoll][userName] = data.predictions[userName];
                         });
                     }
-
-                    // Limpiar resultados simulados antes de renderizar
-                    this.cleanSimulatedResults();
 
                     // Recalcular y renderizar
                     this.recalculateAllPoints();
@@ -1647,16 +1658,34 @@ const app = {
                     });
                 }
 
-                // Actualizar resultados
+                // Actualizar resultados (filtrar simulados de partidos futuros)
                 if (data.results) {
-                    const oldResultsCount = Object.keys(this.results).length;
-                    this.results = { ...this.results, ...data.results };
-                    if (Object.keys(this.results).length > oldResultsCount) {
-                        // Hay nuevos resultados, recalcular todo
+                    const now = getColombiaDate();
+                    let hasNewResults = false;
+                    Object.keys(data.results).forEach(matchId => {
+                        const result = data.results[matchId];
+                        const match = MATCHES_DATA.find(m => m.id == matchId);
+                        if (!match) return;
+                        const matchTime = new Date(match.date);
+                        const colombiaMatch = new Date(matchTime.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+                        const twoHoursAfter = new Date(colombiaMatch.getTime() + 2 * 60 * 60000);
+                        const isFromAPI = result.source === 'worldcup26.ir';
+                        const matchPassed = twoHoursAfter <= now;
+                        if (isFromAPI || matchPassed) {
+                            if (!this.results[matchId] || 
+                                this.results[matchId].score1 !== result.score1 || 
+                                this.results[matchId].score2 !== result.score2) {
+                                this.results[matchId] = result;
+                                hasNewResults = true;
+                            }
+                        }
+                    });
+                    if (hasNewResults) {
                         this.recalculateAllPoints();
                         this.renderMatches();
                         this.renderStandings();
                         this.renderAdmin();
+                        this.updateUserPoints();
                     }
                 }
 
@@ -1998,12 +2027,12 @@ const app = {
                 const colombiaMatch = new Date(d.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
                 const isLocked = colombiaMatch <= new Date(colombiaNow.getTime() + lockMinutes * 60000);
 
-                // isFinished: solo true si hay resultado de la API o si el partido ya pasó hace >2 horas
+                // isFinished: solo true si hay resultado válido (de la API o partido ya pasó)
                 const result = app.results[m.id];
                 const isFinished = result && (
                     result.source === 'worldcup26.ir' || 
                     result.finished === true ||
-                    colombiaMatch < new Date(colombiaNow.getTime() - 2 * 60 * 60000) // 2 horas después del partido
+                    colombiaMatch < new Date(colombiaNow.getTime() - 2 * 60 * 60000)
                 );
 
                 return {
@@ -2053,31 +2082,55 @@ const app = {
             const lockedClass = m.isLocked ? 'locked' : '';
 
             let body = '';
+            const pred = m.userPrediction;
 
             if (m.isFinished && this.results[m.id]) {
+                // PARTIDO FINALIZADO: Mostrar resultado real + pronóstico del usuario + puntos
                 const res = this.results[m.id];
-                const pred = m.userPrediction;
                 const points = pred ? this.calculatePoints(pred, res, m.group) : 0;
 
                 body = '<div class="match-result">' +
-                    '<div class="team-res"><span class="res-score">' + res.score1 + '</span><span class="res-pred">' + (pred ? 'Tú: ' + pred.score1 : 'Sin pronóstico') + '</span></div>' +
-                    '<span style="font-size:1.2rem; color:var(--text-secondary)">-</span>' +
-                    '<div class="team-res"><span class="res-score">' + res.score2 + '</span><span class="res-pred">' + (pred ? 'Tú: ' + pred.score2 : 'Sin pronóstico') + '</span></div>' +
+                    '<div class="team-res">' +
+                        '<span class="res-score">' + res.score1 + '</span>' +
+                        '<span class="res-pred">' + (pred ? 'Tú: ' + pred.score1 : '—') + '</span>' +
                     '</div>' +
-                    (pred ? '<div style="text-align:center"><span class="points-earned">🏆 +' + points + ' pts</span></div>' : '');
+                    '<span style="font-size:1.2rem; color:var(--text-secondary)">-</span>' +
+                    '<div class="team-res">' +
+                        '<span class="res-score">' + res.score2 + '</span>' +
+                        '<span class="res-pred">' + (pred ? 'Tú: ' + pred.score2 : '—') + '</span>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div style="text-align:center; margin-top:8px;">' +
+                        '<span class="points-earned">🏆 ' + (pred ? '+' + points + ' pts' : 'Sin pronóstico · 0 pts') + '</span>' +
+                    '</div>';
+            } else if (m.isLocked) {
+                // PARTIDO CERRADO: Mostrar pronóstico guardado (solo lectura)
+                const s1 = pred ? pred.score1 : '—';
+                const s2 = pred ? pred.score2 : '—';
+
+                body = '<div class="match-vs">' +
+                    '<span class="vs-text">VS</span>' +
+                    '<div class="score-inputs" style="opacity:0.7;">' +
+                    '<input type="number" class="score-input" value="' + s1 + '" disabled style="cursor:default; background:#f0f0f0;">' +
+                    '<span class="score-separator">:</span>' +
+                    '<input type="number" class="score-input" value="' + s2 + '" disabled style="cursor:default; background:#f0f0f0;">' +
+                    '</div></div>' +
+                    '<div style="text-align:center; margin-top:8px;">' +
+                        '<span style="font-size:0.8rem; color:var(--text-secondary); font-weight:600;">' + (pred ? '🔒 Pronóstico guardado' : '🔒 Sin pronóstico') + '</span>' +
+                    '</div>';
             } else {
-                const s1 = m.userPrediction ? m.userPrediction.score1 : '';
-                const s2 = m.userPrediction ? m.userPrediction.score2 : '';
-                const disabled = m.isLocked ? 'disabled' : '';
+                // PARTIDO ABIERTO: Inputs editables
+                const s1 = pred ? pred.score1 : '';
+                const s2 = pred ? pred.score2 : '';
 
                 body = '<div class="match-vs">' +
                     '<span class="vs-text">VS</span>' +
                     '<div class="score-inputs">' +
-                    '<input type="number" class="score-input" id="score-' + m.id + '-1" value="' + s1 + '" min="0" max="20" ' + disabled + ' onchange="app.onScoreChange(' + m.id + ')" placeholder="-">' +
+                    '<input type="number" class="score-input" id="score-' + m.id + '-1" value="' + s1 + '" min="0" max="20" onchange="app.onScoreChange(' + m.id + ')" placeholder="-">' +
                     '<span class="score-separator">:</span>' +
-                    '<input type="number" class="score-input" id="score-' + m.id + '-2" value="' + s2 + '" min="0" max="20" ' + disabled + ' onchange="app.onScoreChange(' + m.id + ')" placeholder="-">' +
+                    '<input type="number" class="score-input" id="score-' + m.id + '-2" value="' + s2 + '" min="0" max="20" onchange="app.onScoreChange(' + m.id + ')" placeholder="-">' +
                     '</div></div>' +
-                    (!m.isLocked ? '<button class="btn-save" id="btn-save-' + m.id + '" onclick="app.savePrediction(' + m.id + ')">💾 Guardar Pronóstico</button>' : '');
+                    '<button class="btn-save" id="btn-save-' + m.id + '" onclick="app.savePrediction(' + m.id + ')">💾 Guardar Pronóstico</button>';
             }
 
             const label = m.label ? '<span style="font-size:0.75rem; color:var(--text-secondary); margin-left:8px">' + m.label + '</span>' : '';
@@ -2217,6 +2270,17 @@ const app = {
                 pollUsers[userName].correctResults = correctResults;
                 pollUsers[userName].exactScores = exactScores;
             });
+
+            // Guardar puntajes actualizados en Firebase
+            if (this.db && this.currentPoll) {
+                const updates = {};
+                Object.keys(pollUsers).forEach(userName => {
+                    updates['pollas/' + this.currentPoll + '/users/' + userName + '/points'] = pollUsers[userName].points;
+                    updates['pollas/' + this.currentPoll + '/users/' + userName + '/correctResults'] = pollUsers[userName].correctResults;
+                    updates['pollas/' + this.currentPoll + '/users/' + userName + '/exactScores'] = pollUsers[userName].exactScores;
+                });
+                this.db.ref().update(updates).catch(e => console.error('Error guardando puntajes:', e));
+            }
         },
 
         renderStandings() {
@@ -2482,6 +2546,39 @@ const app = {
             this.renderAdmin();
         },
 
+        async cleanResults() {
+            if (!confirm('¿Eliminar resultados simulados de partidos futuros? Los oficiales de la API se mantendrán.')) return;
+            const now = getColombiaDate();
+            let cleaned = 0;
+            Object.keys(this.results).forEach(matchId => {
+                const result = this.results[matchId];
+                const match = MATCHES_DATA.find(m => m.id == matchId);
+                if (!match) return;
+                const matchTime = new Date(match.date);
+                const colombiaMatch = new Date(matchTime.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+                const twoHoursAfter = new Date(colombiaMatch.getTime() + 2 * 60 * 60000);
+                const isFromAPI = result.source === 'worldcup26.ir';
+                const matchPassed = twoHoursAfter <= now;
+                if (!isFromAPI && !matchPassed) {
+                    delete this.results[matchId];
+                    cleaned++;
+                }
+            });
+            if (cleaned > 0) {
+                if (this.db && this.currentPoll) {
+                    await this.db.ref('pollas/' + this.currentPoll + '/results').set(this.results);
+                }
+                this.recalculateAllPoints();
+                this.showToast('🧹 ' + cleaned + ' resultado(s) simulado(s) eliminado(s)', 'success');
+                this.renderMatches();
+                this.renderStandings();
+                this.renderAdmin();
+                this.updateUserPoints();
+            } else {
+                this.showToast('📭 No hay resultados simulados para eliminar', 'info');
+            }
+        },
+
 
 
         filterPredictions(filter) {
@@ -2677,48 +2774,36 @@ const app = {
                 'Democratic Republic of the Congo': 'DR Congo'
             };
 
-            const localMatchByApiId = {};
+            // Construir lookup por nombres de equipos (método principal - IGNORAR apiId)
+            const localMatchLookup = {};
             MATCHES_DATA.forEach(m => {
-                if (m.apiId) {
-                    localMatchByApiId[m.apiId] = m;
+                if (m.team1 !== 'TBD' && m.team2 !== 'TBD') {
+                    const key1 = m.team1 + '|' + m.team2;
+                    const key2 = m.team2 + '|' + m.team1;
+                    localMatchLookup[key1] = m;
+                    localMatchLookup[key2] = m;
                 }
             });
 
-            const localMatchLookup = {};
-            MATCHES_DATA.forEach(m => {
-                const key1 = m.team1 + '|' + m.team2;
-                const key2 = m.team2 + '|' + m.team1;
-                localMatchLookup[key1] = m;
-                localMatchLookup[key2] = m;
-            });
-
             data.games.forEach(game => {
-                const apiId = parseInt(game.id);
-                const isFinished = game.finished === 'TRUE' || game.finished === true;
                 const homeScore = parseInt(game.home_score) || 0;
                 const awayScore = parseInt(game.away_score) || 0;
                 const homeTeam = nameMap[game.home_team_name_en] || game.home_team_name_en;
                 const awayTeam = nameMap[game.away_team_name_en] || game.away_team_name_en;
+                const isFinished = game.finished === 'TRUE' || game.finished === true;
+                const isLive = game.time_elapsed === 'live' || game.time_elapsed === '1H' || game.time_elapsed === '2H' || game.time_elapsed === 'HT';
 
-                let localMatch = localMatchByApiId[apiId];
-
-                if (!localMatch) {
-                    const lookupKey = homeTeam + '|' + awayTeam;
-                    localMatch = localMatchLookup[lookupKey];
-                }
-
-                if (!localMatch && game.home_team_label) {
-                    const labelKey = game.home_team_label + '|' + game.away_team_label;
-                    localMatch = localMatchLookup[labelKey];
-                }
+                // Buscar SOLO por nombres de equipos (NO por apiId)
+                let localMatch = localMatchLookup[homeTeam + '|' + awayTeam] || localMatchLookup[awayTeam + '|' + homeTeam];
 
                 if (!localMatch) {
-                    console.log('⚠️ Partido no encontrado: API id ' + apiId + ' - ' + homeTeam + ' vs ' + awayTeam);
+                    console.log('⚠️ Partido no encontrado: ' + homeTeam + ' vs ' + awayTeam);
                     return;
                 }
 
                 const localId = localMatch.id;
 
+                // Actualizar nombres TBD
                 if (localMatch.team1 === 'TBD' && homeTeam && homeTeam !== 'TBD') {
                     localMatch.team1 = homeTeam;
                     teamsUpdated++;
@@ -2734,12 +2819,15 @@ const app = {
                     localMatch.label = game.home_team_label + ' vs ' + game.away_team_label;
                 }
 
-                if (isFinished && (homeScore > 0 || awayScore > 0 || game.time_elapsed === 'finished')) {
+                // Guardar resultado si está finalizado o en vivo
+                if (isFinished || isLive) {
                     const existingResult = app.results[localId];
+                    const isSimulated = existingResult && existingResult.source !== 'worldcup26.ir';
 
                     if (!existingResult || 
                         existingResult.score1 !== homeScore || 
-                        existingResult.score2 !== awayScore) {
+                        existingResult.score2 !== awayScore ||
+                        isSimulated) {
 
                         app.results[localId] = {
                             score1: homeScore,
@@ -2749,7 +2837,8 @@ const app = {
                             source: 'worldcup26.ir',
                             homeTeam: homeTeam,
                             awayTeam: awayTeam,
-                            timeElapsed: game.time_elapsed
+                            timeElapsed: game.time_elapsed,
+                            finished: isFinished
                         };
 
                         updatedCount++;
@@ -2763,18 +2852,24 @@ const app = {
                     await app.db.ref('pollas/' + app.currentPoll + '/results').set(app.results);
                 }
                 app.recalculateAllPoints();
-                await app.saveToFirebase();
+                if (app.db && app.currentPoll && app.users[app.currentPoll]) {
+                    await app.db.ref('pollas/' + app.currentPoll + '/users').set(app.users[app.currentPoll]);
+                }
 
                 let msg = '';
                 if (updatedCount > 0) msg += updatedCount + ' resultado(s) actualizado(s)';
                 if (teamsUpdated > 0) msg += (msg ? ' · ' : '') + teamsUpdated + ' equipo(s) actualizado(s)';
                 app.showToast('🏆 ' + msg + ' desde FIFA', 'success');
 
-                if (teamsUpdated > 0 && document.getElementById('matchesSection').classList.contains('active')) {
-                    app.renderMatches();
-                }
+                app.renderMatches();
+                app.renderStandings();
+                app.updateUserPoints();
+
                 if (document.getElementById('standingsSection').classList.contains('active')) {
                     app.renderStandings();
+                }
+                if (document.getElementById('adminSection').classList.contains('active')) {
+                    app.renderAdmin();
                 }
             } else {
                 console.log('📊 Sin cambios desde la API');
