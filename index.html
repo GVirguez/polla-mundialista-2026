@@ -1459,6 +1459,8 @@ const app = {
                     if (this.db) {
                         this.loadFromFirebase();
                     }
+                    // 2.5 Limpiar resultados simulados de partidos futuros
+                    this.cleanSimulatedResults();
                     // 3. Si no hay datos locales ni Firebase, inicializar estructuras
                     if (!hasLocalData && this.db) {
                         // Esperar un momento por Firebase, si no hay datos, inicializar
@@ -1477,6 +1479,44 @@ const app = {
                     localStorage.removeItem('polla_session');
                 }
             }
+        },
+
+        cleanSimulatedResults() {
+            // Limpiar resultados que no vienen de la API (simulaciones/pruebas)
+            // para evitar que partidos futuros aparezcan como finalizados
+            const now = getColombiaDate();
+            let cleaned = 0;
+
+            Object.keys(this.results).forEach(matchId => {
+                const match = MATCHES_DATA.find(m => m.id == matchId);
+                const result = this.results[matchId];
+
+                if (!match) return;
+
+                // Si el resultado no viene de la API y el partido aún no ha pasado, eliminarlo
+                const matchTime = new Date(match.date);
+                const colombiaMatch = new Date(matchTime.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+                const twoHoursAfter = new Date(colombiaMatch.getTime() + 2 * 60 * 60000);
+
+                const isFromAPI = result.source === 'worldcup26.ir';
+                const matchPassed = twoHoursAfter <= now;
+
+                if (!isFromAPI && !matchPassed) {
+                    console.log('🧹 Eliminando resultado simulado del partido ' + matchId + ': ' + match.team1 + ' vs ' + match.team2);
+                    delete this.results[matchId];
+                    cleaned++;
+                }
+            });
+
+            if (cleaned > 0) {
+                console.log('🧹 ' + cleaned + ' resultado(s) simulado(s) eliminado(s)');
+                // Guardar resultados limpios en Firebase
+                if (this.db && this.currentPoll) {
+                    this.db.ref('pollas/' + this.currentPoll + '/results').set(this.results);
+                }
+            }
+
+            return cleaned;
         },
 
         initFirebase() {
@@ -1559,6 +1599,9 @@ const app = {
                             this.predictions[this.currentPoll][userName] = data.predictions[userName];
                         });
                     }
+
+                    // Limpiar resultados simulados antes de renderizar
+                    this.cleanSimulatedResults();
 
                     // Recalcular y renderizar
                     this.recalculateAllPoints();
@@ -1948,18 +1991,26 @@ const app = {
             const container = document.getElementById('matchesList');
             const now = new Date();
             const lockMinutes = 30;
+            const colombiaNow = getColombiaDate();
 
             let matches = MATCHES_DATA.map(function(m) {
                 const d = new Date(m.date);
+                const colombiaMatch = new Date(d.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+                const isLocked = colombiaMatch <= new Date(colombiaNow.getTime() + lockMinutes * 60000);
+
+                // isFinished: solo true si hay resultado de la API o si el partido ya pasó hace >2 horas
+                const result = app.results[m.id];
+                const isFinished = result && (
+                    result.source === 'worldcup26.ir' || 
+                    result.finished === true ||
+                    colombiaMatch < new Date(colombiaNow.getTime() - 2 * 60 * 60000) // 2 horas después del partido
+                );
+
                 return {
                     ...m,
                     dateObj: d,
-                    isLocked: (() => {
-                    const colombiaNow = getColombiaDate();
-                    const colombiaMatch = new Date(d.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
-                    return colombiaMatch <= new Date(colombiaNow.getTime() + lockMinutes * 60000);
-                })(),
-                    isFinished: !!app.results[m.id],
+                    isLocked: isLocked,
+                    isFinished: isFinished,
                     userPrediction: app.predictions[app.currentPoll] && app.predictions[app.currentPoll][app.currentUser] ? 
                         app.predictions[app.currentPoll][app.currentUser][m.id] : null
                 };
