@@ -912,7 +912,212 @@
             .predictions-match-header { grid-template-columns: 1fr; }
         }
 
+
+        /* ===== ESTILOS TABLA DE CLASIFICACIÓN POR GRUPO ===== */
+        .groups-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .group-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+        }
+        .group-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        .group-card-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 12px 16px;
+            font-weight: 800;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .group-card-header .group-badge {
+            background: var(--accent);
+            color: var(--primary-dark);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+        .group-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .group-table thead th {
+            background: #f8faf8;
+            padding: 10px 8px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: center;
+            border-bottom: 2px solid var(--border);
+        }
+        .group-table thead th:first-child {
+            text-align: left;
+            padding-left: 16px;
+        }
+        .group-table tbody td {
+            padding: 10px 8px;
+            font-size: 0.85rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.2s;
+        }
+        .group-table tbody tr:hover td {
+            background: #f8faf8;
+        }
+        .group-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .group-table tbody td:first-child {
+            text-align: left;
+            padding-left: 16px;
+            font-weight: 700;
+        }
+        .group-table .team-cell {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .group-table .team-flag-td {
+            font-size: 1.4rem;
+            line-height: 1;
+        }
+        .group-table .team-name-td {
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+        .group-table .pos-col {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 0.8rem;
+            background: #f0f0f0;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+        .group-table .pos-1 { background: linear-gradient(135deg, #ffd700 0%, #f4c430 100%); color: #333; }
+        .group-table .pos-2 { background: linear-gradient(135deg, #c0c0c0 0%, #a0a0a0 100%); color: #333; }
+        .group-table .pos-3 { background: linear-gradient(135deg, #cd7f32 0%, #b87333 100%); color: white; }
+        .group-table .pts-col {
+            font-weight: 800;
+            color: var(--primary);
+            font-size: 0.95rem;
+        }
+        .group-table .gd-positive { color: var(--success); }
+        .group-table .gd-negative { color: var(--danger); }
+        .group-table .gd-zero { color: var(--text-secondary); }
+        .groups-refresh-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .groups-refresh-bar .last-update {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        .groups-refresh-bar .btn-refresh {
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .groups-refresh-bar .btn-refresh:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(26,95,42,0.3);
+        }
+        .groups-refresh-bar .btn-refresh:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .groups-refresh-bar .auto-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        .groups-refresh-bar .auto-toggle input {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+        .groups-legend {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+            padding: 12px 16px;
+            background: white;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        .groups-legend span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .groups-legend .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+        .dot-qualified { background: var(--success); }
+        .dot-third { background: #ffc107; }
+        .dot-out { background: #e0e0e0; }
+        @media (max-width: 600px) {
+            .groups-grid {
+                grid-template-columns: 1fr;
+            }
+            .group-table thead th {
+                padding: 8px 4px;
+                font-size: 0.65rem;
+            }
+            .group-table tbody td {
+                padding: 8px 4px;
+                font-size: 0.8rem;
+            }
+            .group-table tbody td:first-child {
+                padding-left: 10px;
+            }
+            .groups-refresh-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
 </style>
+<base target="_blank">
 <base target="_blank">
 <base target="_blank">
 <base target="_blank">
@@ -985,6 +1190,9 @@
                 <button class="nav-tab active" onclick="app.switchTab('matches')" data-tab="matches">
                     📅 Partidos <span class="badge" id="pendingBadge">0</span>
                 </button>
+                <button class="nav-tab" onclick="app.switchTab('groups')" data-tab="groups">
+                    📊 Grupos
+                </button>
                 <button class="nav-tab" onclick="app.switchTab('standings')" data-tab="standings">
                     🏆 Posiciones
                 </button>
@@ -1015,6 +1223,39 @@
                 </div>
 
                 <div id="matchesList"></div>
+            </section>
+
+            <!-- GROUPS STANDINGS SECTION -->
+            <section id="groupsSection" class="section">
+                <h2 class="section-title">📊 Clasificación por Grupos</h2>
+
+                <div class="groups-refresh-bar">
+                    <div class="last-update" id="groupsLastUpdate">Última actualización: —</div>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <label class="auto-toggle">
+                            <input type="checkbox" id="groupsAutoToggle" checked onchange="groupsModule.toggleAutoUpdate()">
+                            Auto-actualizar
+                        </label>
+                        <button class="btn-refresh" id="groupsRefreshBtn" onclick="groupsModule.refreshNow()">
+                            🔄 Actualizar
+                        </button>
+                    </div>
+                </div>
+
+                <div id="groupsList" class="groups-grid">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📊</div>
+                        <h3>Cargando clasificación...</h3>
+                        <p>Obteniendo datos de los grupos del Mundial 2026</p>
+                    </div>
+                </div>
+
+                <div class="groups-legend">
+                    <span><span class="dot dot-qualified"></span> Clasificado directo (1° y 2°)</span>
+                    <span><span class="dot dot-third"></span> Posible mejor 3°</span>
+                    <span><span class="dot dot-out"></span> Eliminado</span>
+                    <span style="margin-left: auto;">PJ = Jugados | G = Ganados | E = Empatados | P = Perdidos | GF = Gol a favor | GC = Gol en contra | DG = Dif. gol | PTS = Puntos</span>
+                </div>
             </section>
 
             <!-- STANDINGS SECTION -->
@@ -1216,6 +1457,53 @@
 
     function getFlag(team) {
         return FLAGS[team] || FLAGS[team.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')] || '🏳️';
+    }
+
+    // ============================================
+    // MAPEO API team_id -> nombre HTML
+    // ============================================
+    const API_TEAM_ID_MAP = {
+        "1": "Mexico", "2": "South Africa", "3": "South Korea", "4": "Czechia",
+        "5": "Canada", "6": "Bosnia and Herzegovina", "7": "Qatar", "8": "Switzerland",
+        "9": "Brazil", "10": "Morocco", "11": "Haiti", "12": "Scotland",
+        "13": "United States", "14": "Paraguay", "15": "Australia", "16": "Türkiye",
+        "17": "Germany", "18": "Curaçao", "19": "Ivory Coast", "20": "Ecuador",
+        "21": "Netherlands", "22": "Japan", "23": "Sweden", "24": "Tunisia",
+        "25": "Belgium", "26": "Egypt", "27": "Iran", "28": "New Zealand",
+        "29": "Spain", "30": "Cape Verde", "31": "Saudi Arabia", "32": "Uruguay",
+        "33": "France", "34": "Senegal", "35": "Iraq", "36": "Norway",
+        "37": "Argentina", "38": "Algeria", "39": "Austria", "40": "Jordan",
+        "41": "Portugal", "42": "DR Congo", "43": "Uzbekistan", "44": "Colombia",
+        "45": "England", "46": "Croatia", "47": "Ghana", "48": "Panama"
+    };
+
+    const HTML_TO_API_TEAM_ID = {};
+    Object.keys(API_TEAM_ID_MAP).forEach(function(id) {
+        HTML_TO_API_TEAM_ID[API_TEAM_ID_MAP[id]] = id;
+    });
+
+    const API_NAME_TO_HTML = {
+        'Czech Republic': 'Czechia',
+        'Turkey': 'Türkiye',
+        'Democratic Republic of the Congo': 'DR Congo',
+        'Curacao': 'Curaçao',
+        'Korea Republic': 'South Korea',
+        'Cabo Verde': 'Cape Verde',
+        'Holland': 'Netherlands',
+        'USA': 'United States'
+    };
+
+    function getTeamNameByApiId(teamId) {
+        return API_TEAM_ID_MAP[teamId] || null;
+    }
+
+    function apiTeamNameToHtml(apiName) {
+        if (FLAGS[apiName]) return apiName;
+        var mapped = API_NAME_TO_HTML[apiName];
+        if (mapped && FLAGS[mapped]) return mapped;
+        var capitalized = apiName.split(' ').map(function(w) { return w.charAt(0).toUpperCase() + w.slice(1); }).join(' ');
+        if (FLAGS[capitalized]) return capitalized;
+        return apiName;
     }
 
 const MATCHES_DATA = [
@@ -2003,6 +2291,7 @@ const app = {
             document.getElementById(tab + 'Section').classList.add('active');
             document.querySelector('[data-tab="' + tab + '"]').classList.add('active');
 
+            if (tab === 'groups') groupsModule.renderGroups();
             if (tab === 'standings') this.renderStandings();
             if (tab === 'predictions') this.renderPredictions();
             if (tab === 'admin') this.renderAdmin();
@@ -2722,7 +3011,277 @@ const app = {
         app.init();
     });
 
-    // ===== API MODULE (CORREGIDO) =====
+    // ============================================
+// MÓDULO DE CLASIFICACIÓN POR GRUPOS
+// ============================================
+const groupsModule = {
+    groupsData: null,
+    autoUpdate: true,
+    refreshTimer: null,
+    lastUpdate: null,
+    isLoading: false,
+
+    init: function() {
+        console.log('📊 Módulo de clasificación por grupos inicializado');
+        this.startAutoUpdate();
+    },
+
+    fetchGroups: function() {
+        return fetch('https://worldcup26.ir/get/groups', {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        }).then(function(response) {
+            if (!response.ok) throw new Error('Error HTTP: ' + response.status);
+            return response.json();
+        }).catch(function(error) {
+            console.error('❌ Error al obtener clasificación:', error);
+            return null;
+        });
+    },
+
+    updateGroupsFromAPI: function() {
+        var self = this;
+        if (self.isLoading) return Promise.resolve();
+        self.isLoading = true;
+
+        var btn = document.getElementById('groupsRefreshBtn');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '🔄 Actualizando...';
+        }
+
+        return self.fetchGroups().then(function(data) {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '🔄 Actualizar';
+            }
+
+            if (data && data.groups) {
+                self.groupsData = data;
+                self.lastUpdate = new Date();
+                self.renderGroups();
+                console.log('✅ Clasificación actualizada desde API');
+            } else {
+                console.log('📭 No se pudieron obtener datos de clasificación');
+                self.calculateFromLocalResults();
+            }
+            self.isLoading = false;
+        });
+    },
+
+    calculateFromLocalResults: function() {
+        var groupLetters = ['A','B','C','D','E','F','G','H','I','J','K','L'];
+        var groups = [];
+        var results = app.results || {};
+
+        groupLetters.forEach(function(letter) {
+            var groupMatches = MATCHES_DATA.filter(function(m) { return m.group === letter; });
+            var teams = {};
+
+            groupMatches.forEach(function(m) {
+                var result = results[m.id];
+                if (!result) return;
+
+                [m.team1, m.team2].forEach(function(team) {
+                    if (team === 'TBD') return;
+                    if (!teams[team]) {
+                        teams[team] = {
+                            name: team,
+                            mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0
+                        };
+                    }
+                });
+
+                var t1 = teams[m.team1];
+                var t2 = teams[m.team2];
+                if (!t1 || !t2) return;
+
+                t1.mp++; t2.mp++;
+                t1.gf += result.score1; t1.ga += result.score2;
+                t2.gf += result.score2; t2.ga += result.score1;
+
+                if (result.score1 > result.score2) {
+                    t1.w++; t1.pts += 3; t2.l++;
+                } else if (result.score1 < result.score2) {
+                    t2.w++; t2.pts += 3; t1.l++;
+                } else {
+                    t1.d++; t1.pts += 1; t2.d++; t2.pts += 1;
+                }
+            });
+
+            var teamList = Object.values(teams).map(function(t) {
+                return {
+                    team_id: HTML_TO_API_TEAM_ID[t.name] || '',
+                    mp: String(t.mp),
+                    w: String(t.w),
+                    l: String(t.l),
+                    d: String(t.d),
+                    pts: String(t.pts),
+                    gf: String(t.gf),
+                    ga: String(t.ga),
+                    gd: String(t.gf - t.ga)
+                };
+            }).sort(function(a, b) {
+                var ptsA = parseInt(a.pts) || 0;
+                var ptsB = parseInt(b.pts) || 0;
+                if (ptsB !== ptsA) return ptsB - ptsA;
+                var gdA = parseInt(a.gd) || 0;
+                var gdB = parseInt(b.gd) || 0;
+                if (gdB !== gdA) return gdB - gdA;
+                var gfA = parseInt(a.gf) || 0;
+                var gfB = parseInt(b.gf) || 0;
+                return gfB - gfA;
+            });
+
+            if (teamList.length > 0) {
+                groups.push({
+                    name: letter,
+                    teams: teamList
+                });
+            }
+        });
+
+        if (groups.length > 0) {
+            this.groupsData = { groups: groups };
+            this.lastUpdate = new Date();
+            this.renderGroups();
+        }
+    },
+
+    renderGroups: function() {
+        var container = document.getElementById('groupsList');
+        var lastUpdateEl = document.getElementById('groupsLastUpdate');
+
+        if (lastUpdateEl && this.lastUpdate) {
+            var timeStr = this.lastUpdate.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+            lastUpdateEl.textContent = 'Última actualización: ' + timeStr;
+        }
+
+        if (!this.groupsData || !this.groupsData.groups || this.groupsData.groups.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><h3>Sin datos de clasificación</h3><p>Los datos aparecerán cuando los partidos comiencen o cuando la API esté disponible.</p></div>';
+            return;
+        }
+
+        var sortedGroups = this.groupsData.groups.slice().sort(function(a, b) {
+            return a.name.localeCompare(b.name);
+        });
+
+        container.innerHTML = sortedGroups.map(function(g) {
+            return groupsModule.renderGroupCard(g);
+        }).join('');
+    },
+
+    renderGroupCard: function(group) {
+        var groupName = group.name;
+
+        var sortedTeams = group.teams.slice().sort(function(a, b) {
+            var ptsA = parseInt(a.pts) || 0;
+            var ptsB = parseInt(b.pts) || 0;
+            if (ptsB !== ptsA) return ptsB - ptsA;
+            var gdA = parseInt(a.gd) || 0;
+            var gdB = parseInt(b.gd) || 0;
+            if (gdB !== gdA) return gdB - gdA;
+            var gfA = parseInt(a.gf) || 0;
+            var gfB = parseInt(b.gf) || 0;
+            return gfB - gfA;
+        });
+
+        var rows = sortedTeams.map(function(team, index) {
+            var teamName = getTeamNameByApiId(team.team_id) || 'Equipo ' + team.team_id;
+            var flag = getFlag(teamName);
+            var pos = index + 1;
+            var posClass = pos <= 2 ? 'pos-' + pos : '';
+            var gd = parseInt(team.gd) || 0;
+            var gdClass = gd > 0 ? 'gd-positive' : (gd < 0 ? 'gd-negative' : 'gd-zero');
+            var gdSign = gd > 0 ? '+' : '';
+
+            return '<tr>' +
+                '<td>' +
+                    '<div class="team-cell">' +
+                    '<span class="pos-col ' + posClass + '">' + pos + '</span>' +
+                    '<span class="team-flag-td">' + flag + '</span>' +
+                    '<span class="team-name-td">' + teamName + '</span>' +
+                    '</div>' +
+                '</td>' +
+                '<td>' + (team.mp || 0) + '</td>' +
+                '<td>' + (team.w || 0) + '</td>' +
+                '<td>' + (team.d || 0) + '</td>' +
+                '<td>' + (team.l || 0) + '</td>' +
+                '<td>' + (team.gf || 0) + '</td>' +
+                '<td>' + (team.ga || 0) + '</td>' +
+                '<td class="' + gdClass + '">' + gdSign + gd + '</td>' +
+                '<td class="pts-col">' + (team.pts || 0) + '</td>' +
+                '</tr>';
+        }).join('');
+
+        return '<div class="group-card fade-in">' +
+            '<div class="group-card-header">' +
+                '<span>Grupo ' + groupName + '</span>' +
+                '<span class="group-badge">' + sortedTeams.length + ' equipos</span>' +
+            '</div>' +
+            '<table class="group-table">' +
+                '<thead>' +
+                    '<tr>' +
+                        '<th>Equipo</th>' +
+                        '<th>PJ</th>' +
+                        '<th>G</th>' +
+                        '<th>E</th>' +
+                        '<th>P</th>' +
+                        '<th>GF</th>' +
+                        '<th>GC</th>' +
+                        '<th>DG</th>' +
+                        '<th>PTS</th>' +
+                    '</tr>' +
+                '</thead>' +
+                '<tbody>' + rows + '</tbody>' +
+            '</table>' +
+            '</div>';
+    },
+
+    startAutoUpdate: function() {
+        if (!this.autoUpdate) return;
+        var self = this;
+        self.updateGroupsFromAPI();
+        self.refreshTimer = setInterval(function() {
+            if (self.autoUpdate) {
+                self.updateGroupsFromAPI();
+            }
+        }, 120000);
+        console.log('🔄 Auto-actualización de grupos iniciada (cada 2 min)');
+    },
+
+    stopAutoUpdate: function() {
+        this.autoUpdate = false;
+        if (this.refreshTimer) {
+            clearInterval(this.refreshTimer);
+            this.refreshTimer = null;
+        }
+        console.log('⏹️ Auto-actualización de grupos detenida');
+    },
+
+    refreshNow: function() {
+        app.showToast('🔄 Consultando clasificación...', 'info');
+        this.updateGroupsFromAPI();
+    },
+
+    toggleAutoUpdate: function() {
+        var checkbox = document.getElementById('groupsAutoToggle');
+        this.autoUpdate = checkbox.checked;
+
+        if (this.autoUpdate) {
+            app.showToast('🔄 Auto-actualización de grupos activada', 'success');
+            this.startAutoUpdate();
+        } else {
+            app.showToast('⏹️ Auto-actualización de grupos desactivada', 'warning');
+            this.stopAutoUpdate();
+        }
+    }
+};
+
+// ===== API MODULE (CORREGIDO) =====
     const apiModule = {
         isEnabled: true,
         autoUpdate: true,
@@ -2949,6 +3508,7 @@ const app = {
                 if (app.currentUser) {
                     clearInterval(checkLogin);
                     apiModule.init();
+                groupsModule.init();
                 }
             }, 1000);
         }, 2000);
