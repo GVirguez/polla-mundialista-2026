@@ -1116,10 +1116,53 @@
                 align-items: stretch;
             }
         }
+        /* ===== ESTILOS BRACKET / LLAVES DEL MUNDIAL ===== */
+        .bracket-wrapper { display: flex; gap: 8px; overflow-x: auto; padding: 10px 5px 30px 5px; min-height: 600px; align-items: flex-start; }
+        .bracket-column { display: flex; flex-direction: column; gap: 12px; min-width: 220px; flex-shrink: 0; }
+        .bracket-column.bracket-finals { min-width: 240px; }
+        .bracket-stage-title { text-align: center; font-weight: 800; font-size: 0.85rem; color: var(--primary-dark); padding: 8px; background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%); border-radius: var(--radius-sm); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
+        .bracket-match-card { background: var(--card); border-radius: var(--radius-sm); border: 2px solid var(--border); overflow: hidden; transition: all 0.3s; box-shadow: var(--shadow); min-width: 220px; }
+        .bracket-match-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); border-color: var(--primary-light); }
+        .bracket-match-card.finished { border-left: 4px solid var(--success); }
+        .bracket-match-header { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: #f8faf8; border-bottom: 1px solid var(--border); font-size: 0.7rem; }
+        .bracket-match-id { font-weight: 700; color: var(--primary); background: var(--accent); padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; }
+        .bracket-match-date { color: var(--text-secondary); font-size: 0.65rem; }
+        .bracket-status { padding: 2px 6px; border-radius: 10px; font-size: 0.6rem; font-weight: 700; }
+        .bracket-status-pending { background: #e3f2fd; color: #1565c0; }
+        .bracket-status-finished { background: #e8f5e9; color: #2e7d32; }
+        .bracket-status-live { background: #ffebee; color: #c62828; animation: pulse 2s infinite; }
+        .bracket-teams { padding: 10px; }
+        .bracket-team { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; transition: all 0.2s; }
+        .bracket-team.bracket-winner { background: linear-gradient(90deg, rgba(40,167,69,0.1) 0%, transparent 100%); font-weight: 800; }
+        .bracket-team.bracket-loser { opacity: 0.6; }
+        .bracket-flag { font-size: 1.4rem; width: 28px; text-align: center; flex-shrink: 0; }
+        .bracket-team-name { flex: 1; font-size: 0.8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .bracket-team-name.placeholder { color: var(--text-secondary); font-style: italic; font-size: 0.75rem; }
+        .bracket-score { font-weight: 800; font-size: 1rem; min-width: 24px; text-align: center; background: #f0f0f0; padding: 2px 6px; border-radius: 4px; }
+        .bracket-winner .bracket-score { background: var(--success); color: white; }
+        .bracket-vs { text-align: center; font-size: 0.65rem; font-weight: 800; color: var(--text-secondary); letter-spacing: 2px; padding: 2px 0; }
+        .bracket-venue { font-size: 0.65rem; color: var(--text-secondary); padding: 4px 10px 8px 10px; text-align: center; border-top: 1px solid var(--border); }
+        .bracket-connectors { display: flex; flex-direction: column; justify-content: space-around; min-width: 30px; padding-top: 45px; flex-shrink: 0; }
+        .connector-pair { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; position: relative; }
+        .connector-line { width: 15px; height: 2px; background: var(--border); position: absolute; right: 0; }
+        .connector-join { width: 2px; height: 50%; background: var(--border); position: absolute; right: 15px; }
+        .bracket-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+        .bracket-controls .last-update { font-size: 0.8rem; color: var(--text-secondary); }
+        .bracket-controls .btn-refresh { background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%); color: white; border: none; padding: 10px 20px; border-radius: 50px; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 6px; }
+        .bracket-controls .btn-refresh:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(26,95,42,0.3); }
+        .bracket-controls .btn-refresh:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .bracket-controls .auto-toggle { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text-secondary); }
+        .bracket-controls .auto-toggle input { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
+        .bracket-legend { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 16px; padding: 12px 16px; background: white; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 0.8rem; color: var(--text-secondary); justify-content: center; }
+        .bracket-legend span { display: flex; align-items: center; gap: 6px; }
+        .bracket-legend .dot { width: 12px; height: 12px; border-radius: 3px; }
+        .dot-finished { background: var(--success); }
+        .dot-pending { background: #e3f2fd; border: 1px solid #1565c0; }
+        .dot-live { background: var(--danger); animation: pulse 2s infinite; }
+        @media (max-width: 1200px) { .bracket-wrapper { gap: 4px; } .bracket-column { min-width: 180px; } .bracket-match-card { min-width: 180px; } .bracket-team-name { font-size: 0.75rem; } }
+        @media (max-width: 900px) { .bracket-wrapper { gap: 2px; padding-bottom: 20px; } .bracket-column { min-width: 160px; } .bracket-match-card { min-width: 160px; } .bracket-connectors { min-width: 20px; padding-top: 40px; } .connector-line { width: 10px; } .connector-join { right: 10px; } }
+        @media (max-width: 600px) { .bracket-wrapper { gap: 2px; } .bracket-column { min-width: 140px; } .bracket-match-card { min-width: 140px; } .bracket-team-name { font-size: 0.7rem; } .bracket-flag { font-size: 1.1rem; width: 22px; } .bracket-score { font-size: 0.85rem; min-width: 20px; } .bracket-connectors { min-width: 15px; padding-top: 38px; } .connector-line { width: 8px; } .connector-join { right: 8px; } }
 </style>
-<base target="_blank">
-<base target="_blank">
-<base target="_blank">
 <base target="_blank">
 <base target="_blank">
 </head>
@@ -1193,6 +1236,9 @@
                 <button class="nav-tab" onclick="app.switchTab('groups')" data-tab="groups">
                     📊 Grupos
                 </button>
+                <button class="nav-tab" onclick="app.switchTab('bracket')" data-tab="bracket">
+                    🏆 Llaves
+                </button>
                 <button class="nav-tab" onclick="app.switchTab('standings')" data-tab="standings">
                     🏆 Posiciones
                 </button>
@@ -1255,6 +1301,34 @@
                     <span><span class="dot dot-third"></span> Posible mejor 3°</span>
                     <span><span class="dot dot-out"></span> Eliminado</span>
                     <span style="margin-left: auto;">PJ = Jugados | G = Ganados | E = Empatados | P = Perdidos | GF = Gol a favor | GC = Gol en contra | DG = Dif. gol | PTS = Puntos</span>
+                </div>
+            </section>
+
+                        <!-- BRACKET SECTION -->
+            <section id="bracketSection" class="section">
+                <h2 class="section-title">🏆 Llaves del Mundial 2026</h2>
+                <div class="bracket-controls">
+                    <div class="last-update" id="bracketLastUpdate">Última actualización: —</div>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <label class="auto-toggle">
+                            <input type="checkbox" id="bracketAutoToggle" checked onchange="bracketModule.toggleAutoUpdate()">
+                            Auto-actualizar
+                        </label>
+                        <button class="btn-refresh" id="bracketRefreshBtn" onclick="bracketModule.refreshNow()">🔄 Actualizar</button>
+                    </div>
+                </div>
+                <div id="bracketContainer">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🏆</div>
+                        <h3>Cargando llaves...</h3>
+                        <p>Obteniendo datos de los partidos de eliminación directa</p>
+                    </div>
+                </div>
+                <div class="bracket-legend">
+                    <span><span class="dot dot-finished"></span> Finalizado</span>
+                    <span><span class="dot dot-live"></span> En vivo</span>
+                    <span><span class="dot dot-pending"></span> Pendiente</span>
+                    <span style="margin-left: auto;">Los equipos se actualizan automáticamente según los resultados</span>
                 </div>
             </section>
 
@@ -2292,6 +2366,7 @@ const app = {
             document.querySelector('[data-tab="' + tab + '"]').classList.add('active');
 
             if (tab === 'groups') groupsModule.renderGroups();
+            if (tab === 'bracket') bracketModule.renderBracket();
             if (tab === 'standings') this.renderStandings();
             if (tab === 'predictions') this.renderPredictions();
             if (tab === 'admin') this.renderAdmin();
@@ -3509,12 +3584,340 @@ const groupsModule = {
                     clearInterval(checkLogin);
                     apiModule.init();
                 groupsModule.init();
+                bracketModule.init();
                 }
             }, 1000);
         }, 2000);
     });
 
     document.addEventListener('gesturestart', (e) => e.preventDefault());
+
+
+// ============================================
+// MÓDULO DE LLAVES / BRACKET DEL MUNDIAL 2026
+// ============================================
+const bracketModule = {
+    autoUpdate: true,
+    refreshTimer: null,
+    lastUpdate: null,
+
+    R32_DEFS: {
+        73: { type: '2nd', groups: ['A','B'] },
+        74: { type: '1st_3rd', groups: ['E'], thirds: ['A','B','C','D','F'] },
+        75: { type: '1st_2nd', groups: ['F','C'] },
+        76: { type: '1st_2nd', groups: ['C','F'] },
+        77: { type: '1st_3rd', groups: ['I'], thirds: ['C','D','F','G','H'] },
+        78: { type: '2nd_2nd', groups: ['E','I'] },
+        79: { type: '1st_3rd', groups: ['A'], thirds: ['C','E','F','H','I'] },
+        80: { type: '1st_3rd', groups: ['L'], thirds: ['E','H','I','J','K'] },
+        81: { type: '1st_3rd', groups: ['D'], thirds: ['B','E','F','I','J'] },
+        82: { type: '1st_3rd', groups: ['G'], thirds: ['A','E','H','I','J'] },
+        83: { type: '2nd_2nd', groups: ['K','L'] },
+        84: { type: '1st_2nd', groups: ['H','J'] },
+        85: { type: '1st_3rd', groups: ['B'], thirds: ['E','F','G','I','J'] },
+        86: { type: '1st_2nd', groups: ['J','H'] },
+        87: { type: '1st_3rd', groups: ['K'], thirds: ['D','E','I','J','L'] },
+        88: { type: '2nd_2nd', groups: ['D','G'] },
+    },
+
+    R16_DEFS: {
+        89: [74, 77], 90: [73, 75], 91: [76, 78], 92: [79, 80],
+        93: [83, 84], 94: [81, 82], 95: [86, 88], 96: [85, 87],
+    },
+
+    QF_DEFS: {
+        97: [89, 90], 98: [93, 94], 99: [91, 92], 100: [95, 96],
+    },
+
+    SF_DEFS: {
+        101: [97, 98], 102: [99, 100],
+    },
+
+    calculateGroupStandings() {
+        const groupLetters = ['A','B','C','D','E','F','G','H','I','J','K','L'];
+        const standings = {};
+        groupLetters.forEach(letter => {
+            const groupMatches = MATCHES_DATA.filter(m => m.group === letter);
+            const teams = {};
+            groupMatches.forEach(m => {
+                const result = app.results[m.id];
+                if (!result) return;
+                [m.team1, m.team2].forEach(team => {
+                    if (team === 'TBD') return;
+                    if (!teams[team]) teams[team] = { name: team, mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 };
+                });
+                const t1 = teams[m.team1], t2 = teams[m.team2];
+                if (!t1 || !t2) return;
+                t1.mp++; t2.mp++;
+                t1.gf += result.score1; t1.ga += result.score2;
+                t2.gf += result.score2; t2.ga += result.score1;
+                if (result.score1 > result.score2) { t1.w++; t1.pts += 3; t2.l++; }
+                else if (result.score1 < result.score2) { t2.w++; t2.pts += 3; t1.l++; }
+                else { t1.d++; t1.pts += 1; t2.d++; t2.pts += 1; }
+            });
+            const sorted = Object.values(teams).sort((a, b) => {
+                if (b.pts !== a.pts) return b.pts - a.pts;
+                const gdA = a.gf - a.ga, gdB = b.gf - b.ga;
+                if (gdB !== gdA) return gdB - gdA;
+                return b.gf - a.gf;
+            });
+            standings[letter] = sorted;
+        });
+        return standings;
+    },
+
+    getBestThirds(groupStandings) {
+        const thirds = [];
+        Object.keys(groupStandings).forEach(letter => {
+            const group = groupStandings[letter];
+            if (group && group[2]) {
+                const t = group[2];
+                thirds.push({ name: t.name, pts: t.pts, gd: t.gf - t.ga, gf: t.gf, group: letter });
+            }
+        });
+        thirds.sort((a, b) => {
+            if (b.pts !== a.pts) return b.pts - a.pts;
+            if (b.gd !== a.gd) return b.gd - a.gd;
+            return b.gf - a.gf;
+        });
+        return thirds;
+    },
+
+    getThirdPlaceIndex(matchId) {
+        const indexMap = { 74: 0, 77: 1, 79: 2, 80: 3, 81: 4, 82: 5, 85: 6, 87: 7 };
+        return indexMap[matchId] !== undefined ? indexMap[matchId] : 0;
+    },
+
+    getTeamForKnockout(matchId, isHome) {
+        const match = MATCHES_DATA.find(m => m.id == matchId);
+        if (!match) return { name: 'TBD', flag: '❓', isPlaceholder: true };
+
+        const teamName = isHome ? match.team1 : match.team2;
+        if (teamName && teamName !== 'TBD') {
+            return { name: teamName, flag: getFlag(teamName), isPlaceholder: false };
+        }
+
+        const result = app.results[matchId];
+        if (result) {
+            const displayTeam = isHome ? (result.score1 > result.score2 ? match.team1 : match.team2) 
+                                       : (result.score2 > result.score1 ? match.team2 : match.team1);
+            if (displayTeam && displayTeam !== 'TBD') {
+                return { name: displayTeam, flag: getFlag(displayTeam), isPlaceholder: false };
+            }
+        }
+
+        const groupStandings = this.calculateGroupStandings();
+
+        if (match.group === 'R32') {
+            const def = this.R32_DEFS[matchId];
+            if (!def) return this.getPlaceholderTeam(match, isHome);
+            let resolvedTeam = null;
+
+            if (def.type === '2nd') {
+                const groupLetter = isHome ? def.groups[0] : def.groups[1];
+                const group = groupStandings[groupLetter];
+                if (group && group[1]) resolvedTeam = group[1].name;
+            }
+            else if (def.type === '2nd_2nd') {
+                const groupLetter = isHome ? def.groups[0] : def.groups[1];
+                const group = groupStandings[groupLetter];
+                if (group && group[1]) resolvedTeam = group[1].name;
+            }
+            else if (def.type === '1st_2nd') {
+                const groupLetter = isHome ? def.groups[0] : def.groups[1];
+                const group = groupStandings[groupLetter];
+                const pos = isHome ? 0 : 1;
+                if (group && group[pos]) resolvedTeam = group[pos].name;
+            }
+            else if (def.type === '1st_3rd') {
+                if (isHome) {
+                    const group = groupStandings[def.groups[0]];
+                    if (group && group[0]) resolvedTeam = group[0].name;
+                } else {
+                    const thirds = this.getBestThirds(groupStandings);
+                    const thirdIndex = this.getThirdPlaceIndex(matchId);
+                    if (thirds[thirdIndex]) resolvedTeam = thirds[thirdIndex].name;
+                }
+            }
+            if (resolvedTeam) return { name: resolvedTeam, flag: getFlag(resolvedTeam), isPlaceholder: false };
+        }
+
+        if (match.group === 'R16') {
+            const prevMatches = this.R16_DEFS[matchId];
+            if (prevMatches) {
+                const prevId = isHome ? prevMatches[0] : prevMatches[1];
+                const prevResult = app.results[prevId];
+                if (prevResult) {
+                    const prevMatch = MATCHES_DATA.find(m => m.id == prevId);
+                    const winner = prevResult.score1 > prevResult.score2 ? prevMatch.team1 : prevMatch.team2;
+                    if (winner && winner !== 'TBD') return { name: winner, flag: getFlag(winner), isPlaceholder: false };
+                }
+            }
+        }
+
+        if (match.group === 'QF') {
+            const prevMatches = this.QF_DEFS[matchId];
+            if (prevMatches) {
+                const prevId = isHome ? prevMatches[0] : prevMatches[1];
+                const prevResult = app.results[prevId];
+                if (prevResult) {
+                    const prevMatch = MATCHES_DATA.find(m => m.id == prevId);
+                    const winner = prevResult.score1 > prevResult.score2 ? prevMatch.team1 : prevMatch.team2;
+                    if (winner && winner !== 'TBD') return { name: winner, flag: getFlag(winner), isPlaceholder: false };
+                }
+            }
+        }
+
+        if (match.group === 'SF') {
+            const prevMatches = this.SF_DEFS[matchId];
+            if (prevMatches) {
+                const prevId = isHome ? prevMatches[0] : prevMatches[1];
+                const prevResult = app.results[prevId];
+                if (prevResult) {
+                    const prevMatch = MATCHES_DATA.find(m => m.id == prevId);
+                    const winner = prevResult.score1 > prevResult.score2 ? prevMatch.team1 : prevMatch.team2;
+                    if (winner && winner !== 'TBD') return { name: winner, flag: getFlag(winner), isPlaceholder: false };
+                }
+            }
+        }
+
+        if (match.group === '3P') {
+            const sfMatches = [101, 102];
+            const sfId = isHome ? sfMatches[0] : sfMatches[1];
+            const sfResult = app.results[sfId];
+            if (sfResult) {
+                const sfMatch = MATCHES_DATA.find(m => m.id == sfId);
+                const loser = sfResult.score1 > sfResult.score2 ? sfMatch.team2 : sfMatch.team1;
+                if (loser && loser !== 'TBD') return { name: loser, flag: getFlag(loser), isPlaceholder: false };
+            }
+        }
+
+        if (match.group === 'F') {
+            const sfMatches = [101, 102];
+            const sfId = isHome ? sfMatches[0] : sfMatches[1];
+            const sfResult = app.results[sfId];
+            if (sfResult) {
+                const sfMatch = MATCHES_DATA.find(m => m.id == sfId);
+                const winner = sfResult.score1 > sfResult.score2 ? sfMatch.team1 : sfMatch.team2;
+                if (winner && winner !== 'TBD') return { name: winner, flag: getFlag(winner), isPlaceholder: false };
+            }
+        }
+
+        return this.getPlaceholderTeam(match, isHome);
+    },
+
+    getPlaceholderTeam(match, isHome) {
+        const label = match.label;
+        if (label) {
+            const parts = label.split(' vs ');
+            const teamLabel = isHome ? parts[0] : (parts[1] || parts[0]);
+            return { name: teamLabel, flag: '❓', isPlaceholder: true, label: teamLabel };
+        }
+        return { name: 'TBD', flag: '❓', isPlaceholder: true };
+    },
+
+    renderBracket() {
+        const container = document.getElementById('bracketContainer');
+        if (!container) return;
+        const lastUpdateEl = document.getElementById('bracketLastUpdate');
+        if (lastUpdateEl && this.lastUpdate) {
+            const timeStr = this.lastUpdate.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+            lastUpdateEl.textContent = 'Última actualización: ' + timeStr;
+        }
+        let html = '<div class="bracket-wrapper">';
+        html += '<div class="bracket-column"><div class="bracket-stage-title">🎯 R32</div>';
+        [73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88].forEach(id => { html += this.renderMatchCard(id); });
+        html += '</div>';
+        html += '<div class="bracket-connectors">';
+        for (let i = 0; i < 8; i++) html += '<div class="connector-pair"><div class="connector-line"></div><div class="connector-join"></div></div>';
+        html += '</div>';
+        html += '<div class="bracket-column"><div class="bracket-stage-title">🏆 R16</div>';
+        [89,90,91,92,93,94,95,96].forEach(id => { html += this.renderMatchCard(id); });
+        html += '</div>';
+        html += '<div class="bracket-connectors">';
+        for (let i = 0; i < 4; i++) html += '<div class="connector-pair"><div class="connector-line"></div><div class="connector-join"></div></div>';
+        html += '</div>';
+        html += '<div class="bracket-column"><div class="bracket-stage-title">⚔️ QF</div>';
+        [97,98,99,100].forEach(id => { html += this.renderMatchCard(id); });
+        html += '</div>';
+        html += '<div class="bracket-connectors">';
+        for (let i = 0; i < 2; i++) html += '<div class="connector-pair"><div class="connector-line"></div><div class="connector-join"></div></div>';
+        html += '</div>';
+        html += '<div class="bracket-column bracket-finals"><div class="bracket-stage-title">🥈 SF</div>';
+        [101,102].forEach(id => { html += this.renderMatchCard(id); });
+        html += '<div class="bracket-stage-title" style="margin-top:20px;">🥉 3° Puesto</div>';
+        html += this.renderMatchCard(103);
+        html += '<div class="bracket-stage-title" style="margin-top:20px;">🏆 Final</div>';
+        html += this.renderMatchCard(104);
+        html += '</div></div>';
+        container.innerHTML = html;
+    },
+
+    renderMatchCard(matchId) {
+        const match = MATCHES_DATA.find(m => m.id == matchId);
+        if (!match) return '';
+        const homeTeam = this.getTeamForKnockout(matchId, true);
+        const awayTeam = this.getTeamForKnockout(matchId, false);
+        const result = app.results[matchId];
+        const isFinished = !!result;
+        const dateObj = new Date(match.date);
+        const dateStr = formatColombiaDate(dateObj);
+        let statusClass = 'bracket-status-pending', statusText = 'Pendiente';
+        if (isFinished) { statusClass = 'bracket-status-finished'; statusText = 'Finalizado'; }
+        else {
+            const now = getColombiaDate();
+            const matchTime = new Date(match.date);
+            const colombiaMatch = new Date(matchTime.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+            if (colombiaMatch <= now) { statusClass = 'bracket-status-live'; statusText = 'En vivo'; }
+        }
+        const homeWinner = result && result.score1 > result.score2;
+        const awayWinner = result && result.score2 > result.score1;
+        const homeClass = homeWinner ? 'bracket-winner' : (result ? 'bracket-loser' : '');
+        const awayClass = awayWinner ? 'bracket-winner' : (result ? 'bracket-loser' : '');
+        return '<div class="bracket-match-card ' + (isFinished ? 'finished' : '') + ' fade-in">' +
+            '<div class="bracket-match-header"><span class="bracket-match-id">#' + matchId + '</span><span class="bracket-match-date">' + dateStr + '</span><span class="bracket-status ' + statusClass + '">' + statusText + '</span></div>' +
+            '<div class="bracket-teams">' +
+            '<div class="bracket-team ' + homeClass + '"><span class="bracket-flag">' + homeTeam.flag + '</span><span class="bracket-team-name ' + (homeTeam.isPlaceholder ? 'placeholder' : '') + '">' + homeTeam.name + '</span><span class="bracket-score">' + (result ? result.score1 : '-') + '</span></div>' +
+            '<div class="bracket-vs">VS</div>' +
+            '<div class="bracket-team ' + awayClass + '"><span class="bracket-flag">' + awayTeam.flag + '</span><span class="bracket-team-name ' + (awayTeam.isPlaceholder ? 'placeholder' : '') + '">' + awayTeam.name + '</span><span class="bracket-score">' + (result ? result.score2 : '-') + '</span></div>' +
+            '</div><div class="bracket-venue">📍 ' + match.venue + '</div></div>';
+    },
+
+    updateFromAPI() {
+        this.lastUpdate = new Date();
+        this.renderBracket();
+    },
+
+    startAutoUpdate() {
+        if (!this.autoUpdate) return;
+        this.updateFromAPI();
+        this.refreshTimer = setInterval(() => { if (this.autoUpdate) this.updateFromAPI(); }, 60000);
+        console.log('🔄 Auto-actualización de llaves iniciada');
+    },
+
+    stopAutoUpdate() {
+        this.autoUpdate = false;
+        if (this.refreshTimer) { clearInterval(this.refreshTimer); this.refreshTimer = null; }
+    },
+
+    refreshNow() {
+        app.showToast('🔄 Actualizando llaves...', 'info');
+        this.updateFromAPI();
+    },
+
+    toggleAutoUpdate() {
+        const checkbox = document.getElementById('bracketAutoToggle');
+        this.autoUpdate = checkbox ? checkbox.checked : true;
+        if (this.autoUpdate) {
+            app.showToast('🔄 Auto-actualización de llaves activada', 'success');
+            this.startAutoUpdate();
+        } else {
+            app.showToast('⏹️ Auto-actualización de llaves desactivada', 'warning');
+            this.stopAutoUpdate();
+        }
+    }
+};
+
 </script>
 
 </body>
