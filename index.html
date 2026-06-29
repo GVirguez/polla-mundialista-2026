@@ -1580,7 +1580,20 @@
         return apiName;
     }
 
-const MATCHES_DATA = [
+const MATCHES_DATA = (function() {
+    try {
+        var saved = localStorage.getItem('polla_matches_data');
+        if (saved) {
+            var parsed = JSON.parse(saved);
+            if (parsed && parsed.length > 0) {
+                console.log('📦 MATCHES_DATA cargado desde localStorage (' + parsed.length + ' partidos)');
+                return parsed;
+            }
+        }
+    } catch (e) {
+        console.log('⚠️ No se pudo cargar MATCHES_DATA desde localStorage');
+    }
+    return [
     // ============================================
     // GRUPO A - Hora Colombia (GMT-5)
     // ============================================
@@ -1757,6 +1770,7 @@ const MATCHES_DATA = [
     // ============================================
     { id: 104, apiId: 104, group: 'F', date: '2026-07-19T14:00:00-05:00', team1: 'TBD', team2: 'TBD', venue: 'MetLife Stadium, East Rutherford', label: 'G101 vs G102' }
 ];
+})();
     // ============================================
 // FUNCIONES HELPER GLOBALES - Hora Colombia
 // ============================================
@@ -2924,16 +2938,52 @@ const app = {
                     cleaned++;
                 }
             });
-            if (cleaned > 0) {
+
+            // LIMPIAR equipos TBD de partidos de eliminación directa (R16, QF, SF, 3P, F)
+            // Solo si no tienen resultado real
+            let teamsReset = 0;
+            const knockoutGroups = ['R16', 'QF', 'SF', '3P', 'F'];
+            MATCHES_DATA.forEach(match => {
+                if (knockoutGroups.includes(match.group)) {
+                    // Solo resetear si el partido NO tiene resultado real
+                    const hasResult = app.results[match.id];
+                    if (!hasResult) {
+                        if (match.team1 !== 'TBD') {
+                            console.log('🧹 Reset equipo: #' + match.id + ' team1 ' + match.team1 + ' -> TBD');
+                            match.team1 = 'TBD';
+                            teamsReset++;
+                        }
+                        if (match.team2 !== 'TBD') {
+                            console.log('🧹 Reset equipo: #' + match.id + ' team2 ' + match.team2 + ' -> TBD');
+                            match.team2 = 'TBD';
+                            teamsReset++;
+                        }
+                    }
+                }
+            });
+
+            // Guardar MATCHES_DATA limpio en localStorage
+            try {
+                localStorage.setItem('polla_matches_data', JSON.stringify(MATCHES_DATA));
+            } catch (e) {}
+
+            if (cleaned > 0 || teamsReset > 0) {
                 if (this.db && this.currentPoll) {
                     await this.db.ref('pollas/' + this.currentPoll + '/results').set(this.results);
                 }
                 this.recalculateAllPoints();
-                this.showToast('🧹 ' + cleaned + ' resultado(s) de partidos futuros eliminado(s)', 'success');
+                let msg = '';
+                if (cleaned > 0) msg += cleaned + ' resultado(s) eliminado(s)';
+                if (teamsReset > 0) msg += (msg ? ' · ' : '') + teamsReset + ' equipo(s) reseteado(s)';
+                this.showToast('🧹 ' + msg, 'success');
                 this.renderMatches();
                 this.renderStandings();
                 this.renderAdmin();
                 this.updateUserPoints();
+                // Actualizar bracket si está visible
+                if (document.getElementById('bracketSection').classList.contains('active')) {
+                    bracketModule.renderBracket();
+                }
             } else {
                 this.showToast('📭 No hay resultados de partidos futuros para eliminar', 'info');
             }
@@ -3094,6 +3144,11 @@ const groupsModule = {
     autoUpdate: true,
     refreshTimer: null,
     lastUpdate: null,
+
+    init() {
+        console.log('🏆 Módulo de llaves inicializado');
+        this.startAutoUpdate();
+    },
     isLoading: false,
 
     init: function() {
@@ -3401,12 +3456,24 @@ const groupsModule = {
             const nameMap = {
                 'Czech Republic': 'Czechia',
                 'Turkey': 'Türkiye',
-                'Democratic Republic of the Congo': 'DR Congo'
+                'Democratic Republic of the Congo': 'DR Congo',
+                'Curacao': 'Curaçao',
+                'Korea Republic': 'South Korea',
+                'Cabo Verde': 'Cape Verde',
+                'Holland': 'Netherlands',
+                'USA': 'United States'
             };
 
-            // Construir lookup por nombres de equipos (método principal - IGNORAR apiId)
+            // Construir lookup por nombres de equipos y apiId
             const localMatchLookup = {};
+            const localMatchByApiId = {};
             MATCHES_DATA.forEach(m => {
+                // Lookup por apiId (para TODOS los partidos, incluyendo TBD)
+                if (m.apiId) {
+                    localMatchByApiId[String(m.apiId)] = m;
+                    localMatchByApiId[parseInt(m.apiId)] = m;
+                }
+                // Lookup por nombres de equipos (solo si ambos están definidos)
                 if (m.team1 !== 'TBD' && m.team2 !== 'TBD') {
                     const key1 = m.team1 + '|' + m.team2;
                     const key2 = m.team2 + '|' + m.team1;
@@ -3418,31 +3485,72 @@ const groupsModule = {
             data.games.forEach(game => {
                 const homeScore = parseInt(game.home_score) || 0;
                 const awayScore = parseInt(game.away_score) || 0;
-                const homeTeam = nameMap[game.home_team_name_en] || game.home_team_name_en;
-                const awayTeam = nameMap[game.away_team_name_en] || game.away_team_name_en;
+
+                // Manejar nombres undefined/null de la API
+                let homeTeamRaw = game.home_team_name_en;
+                let awayTeamRaw = game.away_team_name_en;
+
+                if (!homeTeamRaw || homeTeamRaw === 'null' || homeTeamRaw === 'undefined') {
+                    homeTeamRaw = null;
+                }
+                if (!awayTeamRaw || awayTeamRaw === 'null' || awayTeamRaw === 'undefined') {
+                    awayTeamRaw = null;
+                }
+
+                const homeTeam = homeTeamRaw ? (nameMap[homeTeamRaw] || homeTeamRaw) : null;
+                const awayTeam = awayTeamRaw ? (nameMap[awayTeamRaw] || awayTeamRaw) : null;
+
                 const isFinished = game.finished === 'TRUE' || game.finished === true;
                 const isLive = game.time_elapsed === 'live' || game.time_elapsed === '1H' || game.time_elapsed === '2H' || game.time_elapsed === 'HT';
 
-                // Buscar SOLO por nombres de equipos (NO por apiId)
-                let localMatch = localMatchLookup[homeTeam + '|' + awayTeam] || localMatchLookup[awayTeam + '|' + homeTeam];
+                // PRIMERO: Buscar por apiId (para TODOS los partidos, incluyendo TBD)
+                let localMatch = null;
+                const apiGameId = game.id; // La API usa "id" como string
+                const apiGameIdNum = parseInt(game.id);
+                if (apiGameId && localMatchByApiId[apiGameId]) {
+                    localMatch = localMatchByApiId[apiGameId];
+                } else if (apiGameIdNum && localMatchByApiId[apiGameIdNum]) {
+                    localMatch = localMatchByApiId[apiGameIdNum];
+                }
+
+                // SEGUNDO: Si no se encontró por apiId, buscar por nombres de equipos
+                if (!localMatch && homeTeam && awayTeam) {
+                    localMatch = localMatchLookup[homeTeam + '|' + awayTeam] || localMatchLookup[awayTeam + '|' + homeTeam];
+                }
 
                 if (!localMatch) {
-                    console.log('⚠️ Partido no encontrado: ' + homeTeam + ' vs ' + awayTeam);
+                    // Solo loggear si hay al menos un nombre definido (evitar "undefined vs undefined")
+                    if (homeTeamRaw || awayTeamRaw) {
+                        console.log('⚠️ Partido no encontrado: ' + (homeTeamRaw || '???') + ' vs ' + (awayTeamRaw || '???') + ' (apiId: ' + apiGameId + ')');
+                    }
                     return;
                 }
 
                 const localId = localMatch.id;
 
-                // Actualizar nombres TBD
-                if (localMatch.team1 === 'TBD' && homeTeam && homeTeam !== 'TBD') {
-                    localMatch.team1 = homeTeam;
-                    teamsUpdated++;
-                    console.log('✅ Equipo actualizado: ' + localId + ' team1 = ' + homeTeam);
+                // Actualizar nombres TBD en MATCHES_DATA permanentemente
+                // Solo actualizar si hay un nombre real de la API (no null/undefined)
+                if (homeTeam && homeTeam !== 'TBD' && homeTeam !== 'null' && homeTeam !== 'undefined') {
+                    if (localMatch.team1 === 'TBD') {
+                        localMatch.team1 = homeTeam;
+                        teamsUpdated++;
+                        console.log('✅ Equipo actualizado: ' + localId + ' team1 = ' + homeTeam);
+                    } else if (localMatch.team1 !== homeTeam) {
+                        console.log('🔄 Equipo cambiado: ' + localId + ' team1 ' + localMatch.team1 + ' -> ' + homeTeam);
+                        localMatch.team1 = homeTeam;
+                        teamsUpdated++;
+                    }
                 }
-                if (localMatch.team2 === 'TBD' && awayTeam && awayTeam !== 'TBD') {
-                    localMatch.team2 = awayTeam;
-                    teamsUpdated++;
-                    console.log('✅ Equipo actualizado: ' + localId + ' team2 = ' + awayTeam);
+                if (awayTeam && awayTeam !== 'TBD' && awayTeam !== 'null' && awayTeam !== 'undefined') {
+                    if (localMatch.team2 === 'TBD') {
+                        localMatch.team2 = awayTeam;
+                        teamsUpdated++;
+                        console.log('✅ Equipo actualizado: ' + localId + ' team2 = ' + awayTeam);
+                    } else if (localMatch.team2 !== awayTeam) {
+                        console.log('🔄 Equipo cambiado: ' + localId + ' team2 ' + localMatch.team2 + ' -> ' + awayTeam);
+                        localMatch.team2 = awayTeam;
+                        teamsUpdated++;
+                    }
                 }
 
                 if (game.home_team_label && !localMatch.label) {
@@ -3485,6 +3593,11 @@ const groupsModule = {
             });
 
             if (updatedCount > 0 || teamsUpdated > 0) {
+                // Guardar MATCHES_DATA actualizado en localStorage para persistir equipos TBD resueltos
+                try {
+                    localStorage.setItem('polla_matches_data', JSON.stringify(MATCHES_DATA));
+                } catch (e) { /* ignore */ }
+
                 if (app.db && app.currentPoll) {
                     await app.db.ref('pollas/' + app.currentPoll + '/results').set(app.results);
                 }
@@ -3688,6 +3801,137 @@ const bracketModule = {
         return indexMap[matchId] !== undefined ? indexMap[matchId] : 0;
     },
 
+    // NUEVO: Propagar equipos resueltos de R32 a R16 (y siguientes)
+    propagateTeamsToNextRounds() {
+        // Para cada partido R16, resolver equipos desde R32 SOLO si hay resultados reales
+        const r16Matches = MATCHES_DATA.filter(m => m.group === 'R16');
+        r16Matches.forEach(match => {
+            const prevIds = this.R16_DEFS[match.id];
+            if (!prevIds) return;
+
+            // Home team: ganador del primer R32 (solo si hay resultado REAL)
+            if (match.team1 === 'TBD') {
+                const prevResult = app.results[prevIds[0]];
+                if (prevResult) {
+                    const prevMatch1 = MATCHES_DATA.find(m => m.id == prevIds[0]);
+                    if (prevMatch1 && prevMatch1.team1 !== 'TBD' && prevMatch1.team2 !== 'TBD') {
+                        const winner = prevResult.score1 > prevResult.score2 ? prevMatch1.team1 : prevMatch1.team2;
+                        match.team1 = winner;
+                        console.log('🔄 Propagado: #' + match.id + ' team1 = ' + winner + ' (de #' + prevIds[0] + ')');
+                    }
+                }
+            }
+
+            // Away team: ganador del segundo R32 (solo si hay resultado REAL)
+            if (match.team2 === 'TBD') {
+                const prevResult = app.results[prevIds[1]];
+                if (prevResult) {
+                    const prevMatch2 = MATCHES_DATA.find(m => m.id == prevIds[1]);
+                    if (prevMatch2 && prevMatch2.team1 !== 'TBD' && prevMatch2.team2 !== 'TBD') {
+                        const winner = prevResult.score1 > prevResult.score2 ? prevMatch2.team1 : prevMatch2.team2;
+                        match.team2 = winner;
+                        console.log('🔄 Propagado: #' + match.id + ' team2 = ' + winner + ' (de #' + prevIds[1] + ')');
+                    }
+                }
+            }
+        });
+
+        // Para QF: resolver desde R16 SOLO si hay resultados reales
+        const qfMatches = MATCHES_DATA.filter(m => m.group === 'QF');
+        qfMatches.forEach(match => {
+            const prevIds = this.QF_DEFS[match.id];
+            if (!prevIds) return;
+
+            if (match.team1 === 'TBD') {
+                const prevResult = app.results[prevIds[0]];
+                if (prevResult) {
+                    const prevMatch = MATCHES_DATA.find(m => m.id == prevIds[0]);
+                    if (prevMatch && prevMatch.team1 !== 'TBD' && prevMatch.team2 !== 'TBD') {
+                        const winner = prevResult.score1 > prevResult.score2 ? prevMatch.team1 : prevMatch.team2;
+                        match.team1 = winner;
+                    }
+                }
+            }
+            if (match.team2 === 'TBD') {
+                const prevResult = app.results[prevIds[1]];
+                if (prevResult) {
+                    const prevMatch = MATCHES_DATA.find(m => m.id == prevIds[1]);
+                    if (prevMatch && prevMatch.team1 !== 'TBD' && prevMatch.team2 !== 'TBD') {
+                        const winner = prevResult.score1 > prevResult.score2 ? prevMatch.team1 : prevMatch.team2;
+                        match.team2 = winner;
+                    }
+                }
+            }
+        });
+
+        // Para SF: resolver desde QF SOLO si hay resultados reales
+        const sfMatches = MATCHES_DATA.filter(m => m.group === 'SF');
+        sfMatches.forEach(match => {
+            const prevIds = this.SF_DEFS[match.id];
+            if (!prevIds) return;
+
+            if (match.team1 === 'TBD') {
+                const prevResult = app.results[prevIds[0]];
+                if (prevResult) {
+                    const prevMatch = MATCHES_DATA.find(m => m.id == prevIds[0]);
+                    if (prevMatch && prevMatch.team1 !== 'TBD' && prevMatch.team2 !== 'TBD') {
+                        const winner = prevResult.score1 > prevResult.score2 ? prevMatch.team1 : prevMatch.team2;
+                        match.team1 = winner;
+                    }
+                }
+            }
+            if (match.team2 === 'TBD') {
+                const prevResult = app.results[prevIds[1]];
+                if (prevResult) {
+                    const prevMatch = MATCHES_DATA.find(m => m.id == prevIds[1]);
+                    if (prevMatch && prevMatch.team1 !== 'TBD' && prevMatch.team2 !== 'TBD') {
+                        const winner = prevResult.score1 > prevResult.score2 ? prevMatch.team1 : prevMatch.team2;
+                        match.team2 = winner;
+                    }
+                }
+            }
+        });
+
+        // Para 3P y Final: resolver desde SF SOLO si hay resultados reales
+        [103, 104].forEach(matchId => {
+            const match = MATCHES_DATA.find(m => m.id == matchId);
+            if (!match) return;
+
+            const sfMatches = [101, 102];
+            const is3P = match.group === '3P';
+
+            if (match.team1 === 'TBD') {
+                const sfResult = app.results[sfMatches[0]];
+                if (sfResult) {
+                    const sfMatch = MATCHES_DATA.find(m => m.id == sfMatches[0]);
+                    if (sfMatch && sfMatch.team1 !== 'TBD' && sfMatch.team2 !== 'TBD') {
+                        const team = sfResult.score1 > sfResult.score2 ? 
+                            (is3P ? sfMatch.team2 : sfMatch.team1) : 
+                            (is3P ? sfMatch.team1 : sfMatch.team2);
+                        match.team1 = team;
+                    }
+                }
+            }
+            if (match.team2 === 'TBD') {
+                const sfResult = app.results[sfMatches[1]];
+                if (sfResult) {
+                    const sfMatch = MATCHES_DATA.find(m => m.id == sfMatches[1]);
+                    if (sfMatch && sfMatch.team1 !== 'TBD' && sfMatch.team2 !== 'TBD') {
+                        const team = sfResult.score1 > sfResult.score2 ? 
+                            (is3P ? sfMatch.team2 : sfMatch.team1) : 
+                            (is3P ? sfMatch.team1 : sfMatch.team2);
+                        match.team2 = team;
+                    }
+                }
+            }
+        });
+
+        // Guardar en localStorage
+        try {
+            localStorage.setItem('polla_matches_data', JSON.stringify(MATCHES_DATA));
+        } catch (e) {}
+    },
+
     getTeamForKnockout(matchId, isHome) {
         const match = MATCHES_DATA.find(m => m.id == matchId);
         if (!match) return { name: 'TBD', flag: '❓', isPlaceholder: true };
@@ -3819,6 +4063,10 @@ const bracketModule = {
     renderBracket() {
         const container = document.getElementById('bracketContainer');
         if (!container) return;
+
+        // Primero propagar equipos resueltos a partidos siguientes
+        this.propagateTeamsToNextRounds();
+
         const lastUpdateEl = document.getElementById('bracketLastUpdate');
         if (lastUpdateEl && this.lastUpdate) {
             const timeStr = this.lastUpdate.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
@@ -3885,6 +4133,8 @@ const bracketModule = {
 
     updateFromAPI() {
         this.lastUpdate = new Date();
+        // Propagar equipos resueltos antes de renderizar
+        this.propagateTeamsToNextRounds();
         this.renderBracket();
     },
 
