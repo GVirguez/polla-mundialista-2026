@@ -1458,8 +1458,19 @@
                     <button class="btn btn-secondary btn-sm" onclick="app.exportData()">📥 Exportar Datos (JSON)</button>
                     <button class="btn btn-secondary btn-sm" onclick="app.importData()">📤 Importar Datos</button>
                     <button class="btn btn-secondary btn-sm" onclick="app.resetPredictions()">🗑️ Resetear Pronósticos</button>
-                    <button class="btn btn-secondary btn-sm" onclick="app.simulateResults()">🎲 Simular Resultados</button>
-                    <button class="btn btn-secondary btn-sm" onclick="app.cleanResults()">🧹 Limpiar Resultados Simulados</button>
+                    <button class="btn btn-secondary btn-sm" onclick="app.simulateResults()" style="background:#fff3e0; color:#ef6c00;">🎲 Simular Resultados</button>
+                    <button class="btn btn-secondary btn-sm" onclick="app.cleanResults()" style="background:#ffebee; color:#c62828;">🧹 Limpiar TODOS los Resultados</button>
+                </div>
+
+                <div class="admin-panel">
+                    <h3>🔒 Backups y Recuperación</h3>
+                    <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:12px;">
+                        Se crean backups automáticos antes de simular, limpiar o actualizar resultados.
+                    </p>
+                    <button class="btn btn-secondary btn-sm" onclick="app.restoreBackup()">🔄 Restaurar Backup</button>
+                    <button class="btn btn-secondary btn-sm" onclick="app.verifyPointsIntegrity()">🔍 Verificar Integridad</button>
+                    <button class="btn btn-secondary btn-sm" onclick="app.forceRecalculate()">🧮 Forzar Recálculo</button>
+                    <div id="backupStatus" style="margin-top:10px; font-size:0.8rem; color:var(--text-secondary);"></div>
                 </div>
 
                 <div class="admin-panel">
@@ -2615,36 +2626,40 @@ const app = {
         },
 
         recalculateAllPoints() {
+            // ═══════════════════════════════════════════════════════
+            // RECÁLCULO PURO DESDE CERO - Solución anti-corrupción
+            // ═══════════════════════════════════════════════════════
             if (!this.currentPoll || !this.users[this.currentPoll]) return;
 
             const pollUsers = this.users[this.currentPoll];
             const pollPredictions = this.predictions[this.currentPoll] || {};
 
+            // PASO 1: Resetear TODOS los puntajes a cero (limpia corrupción previa)
             Object.keys(pollUsers).forEach(userName => {
-                let totalPoints = 0;
-                let correctResults = 0;
-                let exactScores = 0;
-                const userPreds = pollPredictions[userName] || {};
-
-                Object.keys(this.results).forEach(matchId => {
-                    const match = MATCHES_DATA.find(m => m.id == matchId);
-                    const pred = userPreds[matchId];
-                    const res = this.results[matchId];
-
-                    if (pred && match) {
-                        const pts = this.calculatePoints(pred, res, match.group);
-                        totalPoints += pts;
-                        if (pts >= 3) correctResults++;
-                        if (pts >= 10) exactScores++;
-                    }
-                });
-
-                pollUsers[userName].points = totalPoints;
-                pollUsers[userName].correctResults = correctResults;
-                pollUsers[userName].exactScores = exactScores;
+                pollUsers[userName].points = 0;
+                pollUsers[userName].correctResults = 0;
+                pollUsers[userName].exactScores = 0;
             });
 
-            // Guardar puntajes actualizados en Firebase
+            // PASO 2: Recalcular SOLO con resultados ACTUALES
+            Object.keys(this.results).forEach(matchId => {
+                const match = MATCHES_DATA.find(m => m.id == matchId);
+                const result = this.results[matchId];
+                if (!match || !result) return;
+
+                Object.keys(pollUsers).forEach(userName => {
+                    const userPreds = pollPredictions[userName] || {};
+                    const pred = userPreds[matchId];
+                    if (pred) {
+                        const pts = this.calculatePoints(pred, result, match.group);
+                        pollUsers[userName].points += pts;
+                        if (pts >= 3) pollUsers[userName].correctResults++;
+                        if (pts >= 10) pollUsers[userName].exactScores++;
+                    }
+                });
+            });
+
+            // PASO 3: Guardar en Firebase
             if (this.db && this.currentPoll) {
                 const updates = {};
                 Object.keys(pollUsers).forEach(userName => {
@@ -2897,96 +2912,140 @@ const app = {
         },
 
         async simulateResults() {
-            if (!confirm('¿Simular resultados aleatorios para todos los partidos?')) return;
+            // ═══════════════════════════════════════════════════════
+            // SIMULACIÓN CON BACKUP AUTOMÁTICO Y ADVERTENCIA MÁXIMA
+            // ═══════════════════════════════════════════════════════
+            const warningMsg = 
+                '🎲 SIMULAR RESULTADOS - MODO PRUEBA\n\n' +
+                '⚠️⚠️⚠️ ADVERTENCIA IMPORTANTE ⚠️⚠️⚠️\n\n' +
+                'Esto generará resultados ALEATORIOS para TODOS los partidos.\n' +
+                'Los puntos de los jugadores se recalcularán con estos resultados FICTICIOS.\n\n' +
+                '✅ Se creará un backup automático antes de simular\n' +
+                '✅ Puedes restaurar el backup desde el panel de admin\n' +
+                '✅ Los resultados simulados tendrán marca especial\n\n' +
+                '¿Deseas continuar?';
 
+            if (!confirm(warningMsg)) return;
+
+            // BACKUP AUTOMÁTICO
+            this._createBackup('simulateResults');
+
+            let simulatedCount = 0;
             MATCHES_DATA.forEach(m => {
                 if (!this.results[m.id]) {
                     this.results[m.id] = {
                         score1: Math.floor(Math.random() * 4),
                         score2: Math.floor(Math.random() * 4),
                         simulated: true,
-                        updatedAt: new Date().toISOString()
+                        testMode: true,
+                        updatedAt: new Date().toISOString(),
+                        updatedBy: 'SIMULATION'
                     };
+                    simulatedCount++;
                 }
             });
 
             await this.saveToFirebase();
             this.recalculateAllPoints();
             await this.saveToFirebase();
-            this.showToast('🎲 Resultados simulados', 'success');
+
+            this.showToast('🎲 ' + simulatedCount + ' resultados simulados (backup creado)', 'warning');
             this.renderMatches();
             this.renderStandings();
             this.renderAdmin();
+            console.log('💾 Backup creado. Usa "Limpiar Resultados" para volver al estado anterior.');
         },
 
         async cleanResults() {
-            if (!confirm('¿Eliminar resultados de partidos que aún no se han jugado?')) return;
+            // ═══════════════════════════════════════════════════════
+            // LIMPIEZA TOTAL Y SEGURA - Recálculo puro desde cero
+            // ═══════════════════════════════════════════════════════
             const now = getColombiaDate();
-            let cleaned = 0;
+            let simulatedCount = 0;
+            let futureCount = 0;
+            let totalCount = 0;
+
             Object.keys(this.results).forEach(matchId => {
                 const result = this.results[matchId];
                 const match = MATCHES_DATA.find(m => m.id == matchId);
                 if (!match) return;
+                totalCount++;
+                if (result.simulated || result.testMode) simulatedCount++;
                 const matchTime = new Date(match.date);
                 const colombiaMatch = new Date(matchTime.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
                 const twoHoursAfter = new Date(colombiaMatch.getTime() + 2 * 60 * 60000);
-                const matchPassed = twoHoursAfter <= now;
-                // Eliminar CUALQUIER resultado de partido que aún no se ha jugado
-                if (!matchPassed) {
-                    console.log('🧹 Eliminando resultado de partido futuro: ' + matchId + ' (' + match.team1 + ' vs ' + match.team2 + ' - ' + match.date + ')');
-                    delete this.results[matchId];
-                    cleaned++;
-                }
+                if (twoHoursAfter > now) futureCount++;
             });
 
-            // LIMPIAR equipos TBD de partidos de eliminación directa (R16, QF, SF, 3P, F)
-            // Solo si no tienen resultado real
+            const confirmMsg = 
+                '🧹 LIMPIAR RESULTADOS\n\n' +
+                'Se encontraron ' + totalCount + ' resultado(s):\n' +
+                '  • ' + simulatedCount + ' simulado(s)\n' +
+                '  • ' + futureCount + ' de partido(s) futuro(s)\n\n' +
+                '⚠️ ESTA ACCIÓN:\n' +
+                '  1. Creará un backup automático\n' +
+                '  2. Eliminará TODOS los resultados\n' +
+                '  3. Reseteará puntos de TODOS los jugadores a CERO\n' +
+                '  4. Recalculará desde cero\n\n' +
+                '✅ Los pronósticos NO se borran\n' +
+                '✅ Puedes restaurar el backup si te arrepientes\n\n' +
+                '¿Deseas continuar?';
+
+            if (!confirm(confirmMsg)) return;
+
+            // PASO 1: BACKUP AUTOMÁTICO
+            this._createBackup('cleanResults');
+
+            // PASO 2: ELIMINAR TODOS LOS RESULTADOS
+            const deletedCount = Object.keys(this.results).length;
+            this.results = {};
+
+            // PASO 3: RESETEAR PUNTOS A CERO
+            if (this.users[this.currentPoll]) {
+                Object.keys(this.users[this.currentPoll]).forEach(userName => {
+                    this.users[this.currentPoll][userName].points = 0;
+                    this.users[this.currentPoll][userName].correctResults = 0;
+                    this.users[this.currentPoll][userName].exactScores = 0;
+                });
+            }
+
+            // PASO 4: RESETEAR EQUIPOS TBD
             let teamsReset = 0;
-            const knockoutGroups = ['R16', 'QF', 'SF', '3P', 'F'];
+            const knockoutGroups = ['R32', 'R16', 'QF', 'SF', '3P', 'F'];
             MATCHES_DATA.forEach(match => {
                 if (knockoutGroups.includes(match.group)) {
-                    // Solo resetear si el partido NO tiene resultado real
-                    const hasResult = app.results[match.id];
-                    if (!hasResult) {
-                        if (match.team1 !== 'TBD') {
-                            console.log('🧹 Reset equipo: #' + match.id + ' team1 ' + match.team1 + ' -> TBD');
-                            match.team1 = 'TBD';
-                            teamsReset++;
-                        }
-                        if (match.team2 !== 'TBD') {
-                            console.log('🧹 Reset equipo: #' + match.id + ' team2 ' + match.team2 + ' -> TBD');
-                            match.team2 = 'TBD';
-                            teamsReset++;
-                        }
-                    }
+                    if (match.team1 !== 'TBD') { match.team1 = 'TBD'; teamsReset++; }
+                    if (match.team2 !== 'TBD') { match.team2 = 'TBD'; teamsReset++; }
                 }
             });
 
-            // Guardar MATCHES_DATA limpio en localStorage
+            // PASO 5: GUARDAR
+            if (this.db && this.currentPoll) {
+                await this.db.ref('pollas/' + this.currentPoll + '/results').set({});
+                if (this.users[this.currentPoll]) {
+                    await this.db.ref('pollas/' + this.currentPoll + '/users').set(this.users[this.currentPoll]);
+                }
+            }
             try {
                 localStorage.setItem('polla_matches_data', JSON.stringify(MATCHES_DATA));
             } catch (e) {}
 
-            if (cleaned > 0 || teamsReset > 0) {
-                if (this.db && this.currentPoll) {
-                    await this.db.ref('pollas/' + this.currentPoll + '/results').set(this.results);
-                }
-                this.recalculateAllPoints();
-                let msg = '';
-                if (cleaned > 0) msg += cleaned + ' resultado(s) eliminado(s)';
-                if (teamsReset > 0) msg += (msg ? ' · ' : '') + teamsReset + ' equipo(s) reseteado(s)';
-                this.showToast('🧹 ' + msg, 'success');
-                this.renderMatches();
-                this.renderStandings();
-                this.renderAdmin();
-                this.updateUserPoints();
-                // Actualizar bracket si está visible
-                if (document.getElementById('bracketSection').classList.contains('active')) {
-                    bracketModule.renderBracket();
-                }
-            } else {
-                this.showToast('📭 No hay resultados de partidos futuros para eliminar', 'info');
-            }
+            // PASO 6: RECALCULAR DESDE CERO
+            this.recalculateAllPoints();
+
+            // PASO 7: RENDERIZAR
+            this.renderMatches();
+            this.renderStandings();
+            this.renderAdmin();
+            this.updateUserPoints();
+            this.updatePendingBadge();
+            if (document.getElementById('bracketSection').classList.contains('active')) bracketModule.renderBracket();
+            if (document.getElementById('groupsSection').classList.contains('active')) groupsModule.renderGroups();
+
+            const msg = '🧹 Limpieza: ' + deletedCount + ' resultado(s) eliminado(s), ' + teamsReset + ' equipo(s) reseteado(s). Puntos a cero.';
+            this.showToast(msg, 'success');
+            console.log(msg);
+            console.log('💾 Backup guardado. Usa "Restaurar Backup" en Admin si necesitas recuperar.');
         },
 
 
@@ -4167,6 +4226,122 @@ const bracketModule = {
         }
     }
 };
+
+
+    // ═══════════════════════════════════════════════════════════
+    // SISTEMA DE BACKUP Y UTILIDADES (Anti-corrupción de puntos)
+    // ═══════════════════════════════════════════════════════════
+
+    app._createBackup = function(operationName) {
+        const backup = {
+            timestamp: new Date().toISOString(),
+            operation: operationName,
+            results: JSON.parse(JSON.stringify(app.results)),
+            users: JSON.parse(JSON.stringify(app.users)),
+            predictions: JSON.parse(JSON.stringify(app.predictions)),
+            matchesData: JSON.parse(JSON.stringify(MATCHES_DATA))
+        };
+        let backups = JSON.parse(localStorage.getItem('polla_backups') || '[]');
+        backups.unshift(backup);
+        if (backups.length > 5) backups = backups.slice(0, 5);
+        localStorage.setItem('polla_backups', JSON.stringify(backups));
+        console.log('💾 Backup creado: ' + operationName);
+        return backup;
+    };
+
+    app._listBackups = function() {
+        return JSON.parse(localStorage.getItem('polla_backups') || '[]');
+    };
+
+    app.restoreBackup = function() {
+        const backups = app._listBackups();
+        if (backups.length === 0) {
+            app.showToast('📭 No hay backups disponibles', 'warning');
+            return;
+        }
+        let msg = '📋 BACKUPS (' + backups.length + '):\n\n';
+        backups.forEach((b, i) => {
+            msg += '[' + i + '] ' + b.operation + ' - ' + new Date(b.timestamp).toLocaleString('es-CO') + '\n';
+        });
+        msg += '\nIngresa número (0-' + (backups.length - 1) + '):';
+        const input = prompt(msg);
+        if (input === null) return;
+        const index = parseInt(input);
+        if (isNaN(index) || index < 0 || index >= backups.length) {
+            app.showToast('❌ Número inválido', 'error');
+            return;
+        }
+        const backup = backups[index];
+        if (!confirm('🔄 RESTAURAR: ' + backup.operation + '\n' + new Date(backup.timestamp).toLocaleString('es-CO') + '\n\n⚠️ Reemplazará datos actuales. ¿Seguro?')) return;
+
+        app.results = JSON.parse(JSON.stringify(backup.results));
+        app.users = JSON.parse(JSON.stringify(backup.users));
+        app.predictions = JSON.parse(JSON.stringify(backup.predictions));
+        if (backup.matchesData) {
+            backup.matchesData.forEach((b, i) => {
+                if (MATCHES_DATA[i]) { MATCHES_DATA[i].team1 = b.team1; MATCHES_DATA[i].team2 = b.team2; MATCHES_DATA[i].label = b.label; }
+            });
+        }
+        if (app.db && app.currentPoll) {
+            app.db.ref('pollas/' + app.currentPoll + '/results').set(app.results);
+            app.db.ref('pollas/' + app.currentPoll + '/users').set(app.users[app.currentPoll]);
+        }
+        try { localStorage.setItem('polla_matches_data', JSON.stringify(MATCHES_DATA)); } catch (e) {}
+        app.recalculateAllPoints();
+        app.renderMatches(); app.renderStandings(); app.renderAdmin(); app.updateUserPoints();
+        app.showToast('✅ Backup restaurado: ' + backup.operation, 'success');
+    };
+
+    app.verifyPointsIntegrity = function() {
+        const issues = [];
+        const pollUsers = app.users[app.currentPoll] || {};
+        const pollPredictions = app.predictions[app.currentPoll] || {};
+        Object.keys(pollUsers).forEach(userName => {
+            let expectedPoints = 0, expectedCorrect = 0, expectedExact = 0;
+            Object.keys(app.results).forEach(matchId => {
+                const match = MATCHES_DATA.find(m => m.id == matchId);
+                const result = app.results[matchId];
+                const pred = pollPredictions[userName] ? pollPredictions[userName][matchId] : null;
+                if (pred && match && result) {
+                    const pts = app.calculatePoints(pred, result, match.group);
+                    expectedPoints += pts;
+                    if (pts >= 3) expectedCorrect++;
+                    if (pts >= 10) expectedExact++;
+                }
+            });
+            const u = pollUsers[userName];
+            if (u.points !== expectedPoints || u.correctResults !== expectedCorrect || u.exactScores !== expectedExact) {
+                issues.push({user: userName, current: {p: u.points, c: u.correctResults, e: u.exactScores}, expected: {p: expectedPoints, c: expectedCorrect, e: expectedExact}});
+            }
+        });
+        if (issues.length === 0) {
+            app.showToast('✅ Integridad verificada - Todo correcto', 'success');
+        } else {
+            let msg = '⚠️ ' + issues.length + ' inconsistencia(s):\n';
+            issues.forEach(i => { msg += i.user + ': ' + i.current.p + ' vs ' + i.expected.p + ' pts\n'; });
+            msg += '\n¿Recalcular desde cero?';
+            if (confirm(msg)) { app._createBackup('integrityFix'); app.recalculateAllPoints(); app.renderStandings(); app.showToast('✅ Corregido', 'success'); }
+        }
+    };
+
+    app.forceRecalculate = function() {
+        if (!confirm('🧮 ¿Forzar recálculo desde cero? Se creará backup.')) return;
+        app._createBackup('forceRecalculate');
+        app.recalculateAllPoints();
+        app.renderMatches(); app.renderStandings(); app.renderAdmin(); app.updateUserPoints();
+        app.showToast('✅ Puntos recalculados desde cero', 'success');
+    };
+
+    // Proteger updateResult con backup
+    const _originalUpdateResult = app.updateResult;
+    app.updateResult = async function() {
+        app._createBackup('manualResult');
+        await _originalUpdateResult.call(this);
+    };
+
+    console.log('✅ Sistema anti-corrupción de puntos activado');
+    console.log('✅ Backup automático habilitado');
+    console.log('✅ Recálculo puro desde cero activo');
 
 </script>
 
