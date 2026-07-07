@@ -2039,16 +2039,35 @@ const app = {
                     return;
                 }
                 
-                // Validar que los equipos del resultado coincidan con MATCHES_DATA
-                const resHome = result.homeTeam || result.team1;
-                const resAway = result.awayTeam || result.team2;
+                                // Validar que los equipos del resultado coincidan con MATCHES_DATA
+                const resHome = result.homeTeam || result.team1 || '';
+                const resAway = result.awayTeam || result.team2 || '';
                 
                 if (resHome && resAway) {
                     const matchHome = match.team1;
                     const matchAway = match.team2;
                     
-                    // Si los equipos no coinciden, IGNORAR el resultado (previene corrupción)
-                    if (resHome !== matchHome && resHome !== matchAway) {
+                    // Mapeo de nombres API → nombres locales
+                    const apiToLocal = {
+                        'Czech Republic': 'Czechia',
+                        'Turkey': 'Türkiye', 
+                        'Democratic Republic of the Congo': 'DR Congo',
+                        'Curacao': 'Curaçao',
+                        'Korea Republic': 'South Korea',
+                        'Cabo Verde': 'Cape Verde',
+                        'Holland': 'Netherlands',
+                        'USA': 'United States'
+                    };
+                    
+                    const localResHome = apiToLocal[resHome] || resHome;
+                    const localResAway = apiToLocal[resAway] || resAway;
+                    
+                    // Validar que AMBOS equipos del resultado estén en el partido local
+                    const homeValid = localResHome === matchHome || localResHome === matchAway;
+                    const awayValid = localResAway === matchHome || localResAway === matchAway;
+                    const notSameTeam = localResHome !== localResAway;
+                    
+                    if (!homeValid || !awayValid || !notSameTeam) {
                         console.log('? IGNORANDO resultado corrupto: matchId=' + matchId + 
                                    ' esperaba ' + matchHome + ' vs ' + matchAway + 
                                    ' pero Firebase tiene ' + resHome + ' vs ' + resAway);
@@ -2813,18 +2832,24 @@ const app = {
     const pollUsers = this.users[this.currentPoll];
     const pollPredictions = this.predictions[this.currentPoll] || {};
     
-    // Estructura para el cuadro de puntos detallado
-    this.pointsBreakdown = {}; // { userName: { total: 0, byCategory: {}, byMatch: [] } }
+    this.pointsBreakdown = {};
 
-    // PASO 1: Resetear TODO a cero
+    // PASO 1: Resetear TODO a cero con valores por defecto
     Object.keys(pollUsers).forEach(userName => {
-        pollUsers[userName].points = 0;
-        pollUsers[userName].correctResults = 0;
-        pollUsers[userName].exactScores = 0;
-        pollUsers[userName].winnerGoals = 0;  // +5
-        pollUsers[userName].winnerOnly = 0;   // +3
-        pollUsers[userName].goalsOnly = 0;    // +1
-        pollUsers[userName].bonusPoints = 0;  // +2 bonus
+        const u = pollUsers[userName];
+        if (!u || typeof u !== 'object') {
+            // Limpiar entrada corrupta
+            delete pollUsers[userName];
+            return;
+        }
+        
+        u.points = 0;
+        u.correctResults = 0;
+        u.exactScores = 0;
+        u.winnerGoals = 0;
+        u.winnerOnly = 0;
+        u.goalsOnly = 0;
+        u.bonusPoints = 0;
         
         this.pointsBreakdown[userName] = {
             total: 0,
@@ -2837,29 +2862,29 @@ const app = {
     Object.keys(this.results).forEach(matchId => {
         const match = MATCHES_DATA.findById(parseInt(matchId));
         const result = this.results[matchId];
-        if (!match || !result) return;
+        if (!match || !result || typeof result !== 'object') return;
+        // Validar que el resultado tenga scores numéricos
+        if (typeof result.score1 !== 'number' || typeof result.score2 !== 'number') return;
 
         Object.keys(pollUsers).forEach(userName => {
             const userPreds = pollPredictions[userName] || {};
             const pred = userPreds[matchId];
-            if (pred) {
+            if (pred && typeof pred === 'object' && typeof pred.score1 === 'number' && typeof pred.score2 === 'number') {
                 const calc = this.calculatePoints(pred, result, match.group);
                 const pts = calc.total;
                 
-                pollUsers[userName].points += pts;
-                if (pts >= 3) pollUsers[userName].correctResults++;
-                if (pts >= 10) pollUsers[userName].exactScores++;
+                const u = pollUsers[userName];
+                u.points += pts;
+                if (pts >= 3) u.correctResults++;
                 
-                // Contadores por categoría
                 calc.breakdown.forEach(b => {
-                    if (b.type === 'exact') pollUsers[userName].exactScores++;
-                    if (b.type === 'winner_goals') pollUsers[userName].winnerGoals++;
-                    if (b.type === 'winner') pollUsers[userName].winnerOnly++;
-                    if (b.type === 'goals') pollUsers[userName].goalsOnly++;
-                    if (b.type === 'bonus') pollUsers[userName].bonusPoints++;
+                    if (b.type === 'exact') u.exactScores++;
+                    if (b.type === 'winner_goals') u.winnerGoals++;
+                    if (b.type === 'winner') u.winnerOnly++;
+                    if (b.type === 'goals') u.goalsOnly++;
+                    if (b.type === 'bonus') u.bonusPoints++;
                 });
 
-                // Guardar desglose
                 this.pointsBreakdown[userName].total += pts;
                 calc.breakdown.forEach(b => {
                     this.pointsBreakdown[userName].byCategory[b.type] += b.points;
@@ -2882,9 +2907,9 @@ const app = {
         Object.keys(pollUsers).forEach(userName => {
             const u = pollUsers[userName];
             const basePath = 'pollas/' + this.currentPoll + '/users/' + userName;
-            updates[basePath + '/points'] = u.points;
-            updates[basePath + '/correctResults'] = u.correctResults;
-            updates[basePath + '/exactScores'] = u.exactScores;
+            updates[basePath + '/points'] = u.points || 0;
+            updates[basePath + '/correctResults'] = u.correctResults || 0;
+            updates[basePath + '/exactScores'] = u.exactScores || 0;
             updates[basePath + '/winnerGoals'] = u.winnerGoals || 0;
             updates[basePath + '/winnerOnly'] = u.winnerOnly || 0;
             updates[basePath + '/goalsOnly'] = u.goalsOnly || 0;
@@ -2895,47 +2920,56 @@ const app = {
 },
 
         renderStandings() {
-            this.recalculateAllPoints();
+    this.recalculateAllPoints();
 
-            const container = document.getElementById('standingsList');
+    const container = document.getElementById('standingsList');
+    if (!container) return;
 
-            if (!this.currentPoll || !this.users[this.currentPoll]) {
-                container.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-secondary)">No hay jugadores registrados</div>';
-                return;
-            }
+    if (!this.currentPoll || !this.users[this.currentPoll]) {
+        container.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-secondary)">No hay jugadores registrados</div>';
+        return;
+    }
 
-            const players = Object.values(this.users[this.currentPoll])
-                .map(u => ({
-                    ...u,
-                    accuracy: u.correctResults > 0 ? Math.round((u.correctResults / Object.keys(this.results).length) * 100) : 0
-                }))
-                .sort((a, b) => b.points - a.points);
+    // Filtrar solo usuarios válidos con nombre
+    const players = Object.values(this.users[this.currentPoll])
+        .filter(u => u && typeof u === 'object' && u.name) // ← PROTECCIÓN CLAVE
+        .map(u => ({
+            ...u,
+            points: u.points || 0,
+            correctResults: u.correctResults || 0,
+            exactScores: u.exactScores || 0,
+            accuracy: (u.correctResults > 0 && Object.keys(this.results).length > 0) 
+                ? Math.round((u.correctResults / Object.keys(this.results).length) * 100) 
+                : 0
+        }))
+        .sort((a, b) => b.points - a.points);
 
-            if (players.length === 0) {
-                container.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-secondary)">No hay jugadores registrados</div>';
-                return;
-            }
+    if (players.length === 0) {
+        container.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-secondary)">No hay jugadores registrados</div>';
+        return;
+    }
 
-            container.innerHTML = players.map((p, i) => {
-                const isMe = p.name === this.currentUser;
-                const topClass = i < 3 ? 'top-3' : '';
-                const meStyle = isMe ? 'background: rgba(26,95,42,0.05); font-weight:800;' : '';
+    container.innerHTML = players.map((p, i) => {
+        const isMe = p.name === this.currentUser;
+        const topClass = i < 3 ? 'top-3' : '';
+        const meStyle = isMe ? 'background: rgba(26,95,42,0.05); font-weight:800;' : '';
+        const initial = (p.name || '?').charAt(0).toUpperCase(); // ← PROTECCIÓN charAt
 
-                return '<div class="standings-row ' + topClass + '" style="' + meStyle + '">' +
-                    '<div class="pos">' + (i + 1) + '</div>' +
-                    '<div class="player-info">' +
-                    '<div class="player-avatar">' + p.name.charAt(0).toUpperCase() + '</div>' +
-                    '<div><div class="player-name">' + p.name + (isMe ? ' (Tú)' : '') + '</div>' +
-                    '<div class="player-detail">' + p.exactScores + ' exactos · ' + p.correctResults + ' aciertos</div></div>' +
-                    '</div>' +
-                    '<div class="stat stat-points">' + p.points + '</div>' +
-                    '<div class="stat">' + p.correctResults + '</div>' +
-                    '<div class="stat">' + p.accuracy + '%</div>' +
-                    '</div>';
-            }).join('');
+        return '<div class="standings-row ' + topClass + '" style="' + meStyle + '">' +
+            '<div class="pos">' + (i + 1) + '</div>' +
+            '<div class="player-info">' +
+            '<div class="player-avatar">' + initial + '</div>' +
+            '<div><div class="player-name">' + p.name + (isMe ? ' (Tú)' : '') + '</div>' +
+            '<div class="player-detail">' + (p.exactScores || 0) + ' exactos · ' + (p.correctResults || 0) + ' aciertos</div></div>' +
+            '</div>' +
+            '<div class="stat stat-points">' + (p.points || 0) + '</div>' +
+            '<div class="stat">' + (p.correctResults || 0) + '</div>' +
+            '<div class="stat">' + (p.accuracy || 0) + '%</div>' +
+            '</div>';
+    }).join('');
 
-            this.updateUserPoints();
-        },
+    this.updateUserPoints();
+},
 
         renderAdmin() {
             const select = document.getElementById('adminMatchSelect');
@@ -3810,17 +3844,25 @@ const groupsModule = {
 
                 const localId = localMatch.id;
 
-                // Actualizar nombres TBD en MATCHES_DATA permanentemente
-                // Solo actualizar si hay un nombre real de la API (no null/undefined)
-                if (homeTeam && homeTeam !== 'TBD' && homeTeam !== 'null' && homeTeam !== 'undefined') {
+                 // Actualizar nombres TBD en MATCHES_DATA permanentemente
+                // Solo actualizar si hay un nombre real de la API (no null/undefined/TBD)
+                // y si el team_id de la API NO es '0' (que indica TBD en la API)
+                const apiHomeId = game.home_team_id || '';
+                const apiAwayId = game.away_team_id || '';
+                
+                if (homeTeam && homeTeam !== 'TBD' && homeTeam !== 'null' && homeTeam !== 'undefined' && apiHomeId !== '0') {
                     if (localMatch.team1 === 'TBD') {
                         localMatch.team1 = homeTeam;
                         teamsUpdated++;
                         console.log('? Equipo actualizado: ' + localId + ' team1 = ' + homeTeam);
-                    } else if (localMatch.team1 !== homeTeam) {
-                        console.log('?? Equipo cambiado: ' + localId + ' team1 ' + localMatch.team1 + ' -> ' + homeTeam);
-                        localMatch.team1 = homeTeam;
+                    }
+                }
+                
+                if (awayTeam && awayTeam !== 'TBD' && awayTeam !== 'null' && awayTeam !== 'undefined' && apiAwayId !== '0') {
+                    if (localMatch.team2 === 'TBD') {
+                        localMatch.team2 = awayTeam;
                         teamsUpdated++;
+                        console.log('? Equipo actualizado: ' + localId + ' team2 = ' + awayTeam);
                     }
                 }
                 if (awayTeam && awayTeam !== 'TBD' && awayTeam !== 'null' && awayTeam !== 'undefined') {
@@ -3860,8 +3902,10 @@ const groupsModule = {
                             updatedAt: new Date().toISOString(),
                             updatedBy: 'API-Mundial-2026',
                             source: 'worldcup26.ir',
-                            homeTeam: homeTeam,
-                            awayTeam: awayTeam,
+                            homeTeam: homeTeam,      // nombre original API
+                            awayTeam: awayTeam,      // nombre original API
+                            team1: homeTeam,         // alias para compatibilidad
+                            team2: awayTeam,         // alias para compatibilidad
                             timeElapsed: game.time_elapsed,
                             finished: isFinished
                         };
